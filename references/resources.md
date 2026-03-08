@@ -7,6 +7,9 @@
 - `scripts/process_results.py`: Process, deduplicate, format search results (markdown, JSON, BibTeX, RIS — no API calls)
 - `scripts/generate_bib.py`: Generate BibTeX bibliography by resolving DOIs via APIs (doi.org → CrossRef → PubMed) with cross-verification
 - `scripts/extract_abstracts.py`: Extract abstracts for selected articles by row number or DOI (no API calls)
+- `scripts/extract_data.py`: Extract quantitative claims from article abstracts into structured JSON (single source of truth for numbers)
+- `scripts/verify_claims.py`: Cross-verify numerical claims in a review against extracted data, produce audit report
+- `scripts/fetch_fulltext.py`: Fetch full-text articles (PMC → Unpaywall → Publisher → Sci-Hub) and enrich extracted claims
 - `scripts/bibtex_keys.py`: Shared BibTeX key collision handling (used internally)
 - `scripts/http_utils.py`: Shared HTTP retry logic (used internally by `verify_citations.py`, `generate_bib.py`)
 
@@ -40,6 +43,7 @@
 **System Tools:**
 - Python >= 3.10
 - uv (manages `requests` dependency at runtime)
+- pdftotext (from poppler-utils, used by `fetch_fulltext.py` for PDF conversion)
 
 ## Running Tests
 

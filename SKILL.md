@@ -22,12 +22,14 @@ If resuming a previous session, check `review/` for existing files and reconstru
 - [ ] Phase 3 Screening
   - [ ] GATE 3: PRISMA counts printed (initial → deduplicated → title → abstract → included)
 - [ ] Phase 4 Extraction
-  - [ ] GATE 4: study summary table + quality ratings printed
+  - [ ] GATE 4a: study summary table + quality ratings printed
+  - [ ] GATE 4b: extract_data.py executed → review/extracted_claims.json exists
 - [ ] Phase 5 Synthesis
   - [ ] GATE 5: review document written → review/<topic>_review.md exists with all sections
 - [ ] Phase 6 Verification
   - [ ] GATE 6a: verify_citations.py executed → all DOIs pass
   - [ ] GATE 6b: generate_bib.py executed → review/references.bib exists
+  - [ ] GATE 6c: verify_claims.py executed → review/claims_audit.json exists, UNVERIFIED claims reviewed
 - [ ] Phase 7 Final Quality Check
   - [ ] GATE 7: quality checklist printed and all items PASS
 ```
@@ -117,9 +119,26 @@ Print PRISMA counts (no placeholders): identified → deduplicated → title-scr
 
 3. **Organize by Themes**: identify 3-5 major themes, group studies by theme, note patterns, consensus, and controversies
 
-### ═══ GATE 4 — MANDATORY BEFORE PHASE 5 ═══
+### ═══ GATE 4a — MANDATORY BEFORE GATE 4b ═══
 
 Print a summary table of ALL included studies with columns: Author (Year), Design, N, Quality Rating (Low/Some Concerns/High), Key Finding, Theme(s). Then print: quality tool used, count per rating level, GRADE certainty per outcome, and list of themes with study counts. Every study must have a quality rating and theme assignment before proceeding.
+
+### ═══ GATE 4b — EXTRACT QUANTITATIVE CLAIMS ═══
+
+Extract all numerical claims from included article abstracts into a structured JSON. This file is the **single source of truth** for numbers that may be cited in the review.
+
+```bash
+python "$SKILL_DIR/scripts/extract_data.py" review/combined_results.json \
+  --rows <space-separated row numbers of included articles> \
+  --fetch-abstracts \
+  --output review/extracted_claims.json
+```
+
+Options: `--rows` or `--dois` to select articles, `--fetch-abstracts` to retrieve missing abstracts from PubMed via PMID (recommended).
+
+Review the output statistics. If many articles lack abstracts, note this — those articles' numbers will require manual full-text verification later.
+
+DO NOT proceed to Phase 5 until `review/extracted_claims.json` exists.
 
 ## Phase 5: Synthesis and Analysis
 
@@ -131,6 +150,8 @@ Print a summary table of ALL included studies with columns: Author (Year), Desig
    The template YAML header is Quarto/Pandoc-compatible and can be rendered to HTML/PDF/DOCX directly.
 
 2. **Write Thematic Synthesis** — organize by themes, NOT study-by-study. Synthesize across studies, compare/contrast, identify consensus and controversies. Use Pandoc citation syntax: `[@Key_Year]`, `[@key1; @key2]`, `[-@Key_Year]`.
+
+   **CRITICAL — Constrained writing**: When citing specific numbers (prevalences, OR, HR, percentages, p-values, sample sizes, rates), you MUST only use values that appear in `review/extracted_claims.json` for the corresponding article. Read the extraction file before writing. If a number is not in the extraction (e.g., only in the full-text), either omit it or flag it with `<!-- UNVERIFIED: value from full-text, not in abstract -->` in the markdown.
 
 3. **Critical Analysis**: evaluate methodological strengths/limitations, assess evidence quality and consistency, identify knowledge gaps
 
@@ -168,6 +189,45 @@ uv run --with requests python "$SKILL_DIR/scripts/generate_bib.py" review/<topic
 
 Review cross-verification output: fix any mismatches between markdown references and generated BibTeX entries.
 
+### ═══ GATE 6c — VERIFY NUMERICAL CLAIMS ═══
+
+Cross-verify all numerical claims in the review against the extracted data from abstracts.
+
+**Step 1 — First verification pass:**
+
+```bash
+python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
+  --claims review/extracted_claims.json \
+  --output review/claims_audit.json
+```
+
+**Step 2 — Enrich with full-text**: if many claims are UNVERIFIED, fetch full-text articles (PMC → Unpaywall → Sci-Hub) to extract additional claims:
+
+```bash
+python "$SKILL_DIR/scripts/fetch_fulltext.py" review/claims_audit.json \
+  --extraction review/extracted_claims.json \
+  --bib review/references.bib \
+  --output review/extracted_claims.json
+```
+
+This tries open-access sources first (PMC, Unpaywall), then Sci-Hub as fallback for UNVERIFIED articles. Extracted claims are merged into `extracted_claims.json`.
+
+**Step 3 — Re-verify** with enriched data:
+
+```bash
+python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
+  --claims review/extracted_claims.json \
+  --output review/claims_audit.json
+```
+
+Review the audit report. For each status:
+- **VERIFIED**: number confirmed in the article's abstract — no action needed
+- **UNVERIFIED**: number NOT found in the abstract — either correct from full-text (add `<!-- VERIFIED: full-text -->` comment) or hallucinated (fix immediately)
+- **NO_ABSTRACT**: article had no abstract — manual check required against full-text
+- **NO_EXTRACTION**: article missing from extraction — re-run extract_data.py with correct rows
+
+Fix all hallucinated claims before proceeding. Print the summary counts.
+
 **Maintain a `bibtex` code block** at the end of the `.md` listing all cited references (see `references/bibtex_format.md`). Keys follow `FirstAuthorLastName_Year` pattern (deduplicated with suffix a, b, c).
 
 ## Phase 7: Final Quality Check
@@ -179,14 +239,15 @@ Print each item below and mark PASS or FAIL. If any item is FAIL, go back and fi
 ```
 1. verify_citations.py executed, all DOIs verified?      [PASS/FAIL]
 2. generate_bib.py executed, references.bib exists?      [PASS/FAIL]
-3. Citations formatted consistently (Pandoc syntax)?     [PASS/FAIL]
-4. PRISMA flow diagram included?                         [PASS/FAIL or N/A]
-5. Search methodology fully documented?                  [PASS/FAIL]
-6. Inclusion/exclusion criteria clearly stated?          [PASS/FAIL]
-7. Results organized thematically (not study-by-study)?  [PASS/FAIL]
-8. Quality assessment completed (RoB/GRADE)?             [PASS/FAIL]
-9. Limitations acknowledged?                             [PASS/FAIL]
-10. references.bib referenced in YAML header?            [PASS/FAIL]
+3. verify_claims.py executed, claims audit reviewed?     [PASS/FAIL]
+4. Citations formatted consistently (Pandoc syntax)?     [PASS/FAIL]
+5. PRISMA flow diagram included?                         [PASS/FAIL or N/A]
+6. Search methodology fully documented?                  [PASS/FAIL]
+7. Inclusion/exclusion criteria clearly stated?          [PASS/FAIL]
+8. Results organized thematically (not study-by-study)?  [PASS/FAIL]
+9. Quality assessment completed (RoB/GRADE)?             [PASS/FAIL]
+10. Limitations acknowledged?                            [PASS/FAIL]
+11. references.bib referenced in YAML header?            [PASS/FAIL]
 ```
 
 ### Output Files
@@ -194,7 +255,9 @@ Print each item below and mark PASS or FAIL. If any item is FAIL, go back and fi
 - `review/<topic>_review.md` — main review document
 - `review/references.bib` — generated BibTeX bibliography
 - `review/search_results.md` — processed search results
+- `review/extracted_claims.json` — structured numerical claims from abstracts (source of truth)
 - `review/<topic>_review_citation_report.json` — citation verification report
+- `review/claims_audit.json` — cross-verification audit report (claims vs abstracts)
 - `review/screening_log.md` — screening decisions (for session resumption)
 
 ## Review Type Adaptations
@@ -213,7 +276,18 @@ Print each item below and mark PASS or FAIL. If any item is FAIL, go back and fi
 - `references/best_practices.md` — Best practices and common pitfalls
 - `references/resources.md` — Scripts inventory, external resources, dependencies
 
+## Institutional Access
+
+If the user has institutional access (university), two mechanisms are supported:
+
+**VPN (recommended)**: Connect to the university VPN before running the skill. No configuration needed — `fetch_fulltext.py` will automatically access publisher PDFs via the DOI resolver. The cascade becomes: PMC → Unpaywall → **Publisher** → Sci-Hub.
+
+**Database access (Phase 2)**: With VPN active, the user can search EMBASE/Ovid, Web of Science, Scopus, and CINAHL via their institution's web portal — search strategies are documented in `references/database_strategies.md`.
+
+Without VPN, the skill works with free sources only (PubMed, PMC, Unpaywall, Semantic Scholar, OpenAlex, Sci-Hub). The publisher source is still attempted but will fail for paywalled articles.
+
 ## Dependencies
 
 - **Python** >= 3.10
 - **uv** (manages `requests` dependency at runtime via `uv run --with requests`)
+- **pdftotext** (from `poppler-utils`, used by `fetch_fulltext.py`)

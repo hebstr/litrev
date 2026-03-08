@@ -28,7 +28,7 @@ If resuming a previous session, check `review/` for existing files and reconstru
 - [ ] Phase 6 Verification
   - [ ] GATE 6a: verify_citations.py executed → all DOIs pass
   - [ ] GATE 6b: generate_bib.py executed → review/references.bib exists
-- [ ] Phase 7 Output
+- [ ] Phase 7 Final Quality Check
   - [ ] GATE 7: quality checklist printed and all items PASS
 ```
 
@@ -128,6 +128,7 @@ Print a summary table of ALL included studies with columns: Author (Year), Desig
    cp "$SKILL_DIR/assets/review_template.md" review/<topic>_review.md
    cp "$SKILL_DIR/assets/vancouver.csl" review/vancouver.csl
    ```
+   The template YAML header is Quarto/Pandoc-compatible and can be rendered to HTML/PDF/DOCX directly.
 
 2. **Write Thematic Synthesis** — organize by themes, NOT study-by-study. Synthesize across studies, compare/contrast, identify consensus and controversies. Use Pandoc citation syntax: `[@Key_Year]`, `[@key1; @key2]`, `[-@Key_Year]`.
 
@@ -169,7 +170,7 @@ Review cross-verification output: fix any mismatches between markdown references
 
 **Maintain a `bibtex` code block** at the end of the `.md` listing all cited references (see `references/bibtex_format.md`). Keys follow `FirstAuthorLastName_Year` pattern (deduplicated with suffix a, b, c).
 
-## Phase 7: Document Generation
+## Phase 7: Final Quality Check
 
 ### ═══ GATE 7 — FINAL QUALITY CHECK ═══
 
@@ -216,4 +217,3 @@ Print each item below and mark PASS or FAIL. If any item is FAIL, go back and fi
 
 - **Python** >= 3.10
 - **uv** (manages `requests` dependency at runtime via `uv run --with requests`)
-- **Quarto** >= 1.4 (rendering .qmd to PDF/HTML/DOCX)

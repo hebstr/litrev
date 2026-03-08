@@ -19,7 +19,7 @@
 
 **Assets:**
 - `assets/review_template.md`: Complete literature review template
-- `assets/vancouver.csl`: Vancouver (NLM/ICMJE) citation style for Quarto rendering
+- `assets/vancouver.csl`: Vancouver (NLM/ICMJE) citation style
 
 ## External Resources
 
@@ -33,10 +33,6 @@
 - PubMed Advanced Search: https://pubmed.ncbi.nlm.nih.gov/advanced/
 - Boolean Search Guide: https://www.ncbi.nlm.nih.gov/books/NBK3827/
 
-## Integration with Other Skills
-
-- **quarto-authoring**: Render systematic reviews as `.qmd` to PDF/HTML/DOCX with `.bib` + `.csl`, cross-references, and embedded R/Python code chunks for reproducible forest/funnel plots
-
 ## Dependencies
 
 **Python Packages:** Scripts needing `requests` (`verify_citations.py`, `generate_bib.py`) are invoked via `uv run --with requests` — no manual install needed.
@@ -44,7 +40,6 @@
 **System Tools:**
 - Python >= 3.10
 - uv (manages `requests` dependency at runtime)
-- Quarto >= 1.4 (rendering .qmd to PDF/HTML/DOCX)
 
 ## Running Tests
 

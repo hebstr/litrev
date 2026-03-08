@@ -11,6 +11,7 @@ from verify_citations import CitationVerifier
 from generate_bib import extract_dois, extract_refs_md, _extract_bibtex_entries, _CROSSREF_TYPE_MAP
 from bibtex_keys import unique_key as _unique_key, strip_code_blocks as _strip_code_blocks, extract_doi_matches as _extract_doi_matches, escape_bibtex as _escape_bibtex
 from process_results import deduplicate_results, filter_by_year, rank_results, format_search_results
+from extract_abstracts import extract_by_dois, extract_by_rows, format_output
 from bibtex_keys import _next_suffix
 
 
@@ -274,6 +275,86 @@ class TestExtractBibtexEntries(unittest.TestCase):
         entries = _extract_bibtex_entries(text)
         assert len(entries) == 1
         assert "10.1234/abc" in entries[0]
+
+
+class TestExtractByDois(unittest.TestCase):
+    def setUp(self):
+        self.results = [
+            {"title": "Study A", "doi": "10.1234/a", "abstract": "Abstract A"},
+            {"title": "Study B", "doi": "10.5678/b", "abstract": "Abstract B"},
+            {"title": "Study C", "doi": "10.9999/c", "abstract": "Abstract C"},
+        ]
+
+    def test_single_match(self):
+        assert len(extract_by_dois(self.results, ["10.1234/a"])) == 1
+
+    def test_case_insensitive(self):
+        assert len(extract_by_dois(self.results, ["10.1234/A"])) == 1
+
+    def test_multiple_matches(self):
+        assert len(extract_by_dois(self.results, ["10.1234/a", "10.9999/c"])) == 2
+
+    def test_no_match(self):
+        assert extract_by_dois(self.results, ["10.0000/missing"]) == []
+
+    def test_whitespace_stripped(self):
+        assert len(extract_by_dois(self.results, [" 10.1234/a "])) == 1
+
+    def test_missing_doi_field(self):
+        results = [{"title": "No DOI"}]
+        assert extract_by_dois(results, ["10.1234/a"]) == []
+
+
+class TestExtractByRows(unittest.TestCase):
+    def setUp(self):
+        self.results = [
+            {"title": "A"}, {"title": "B"}, {"title": "C"}
+        ]
+
+    def test_single_row(self):
+        extracted = extract_by_rows(self.results, [2])
+        assert len(extracted) == 1
+        assert extracted[0]["title"] == "B"
+
+    def test_multiple_rows(self):
+        assert len(extract_by_rows(self.results, [1, 3])) == 2
+
+    def test_out_of_range_ignored(self):
+        assert len(extract_by_rows(self.results, [0, 4, 99])) == 0
+
+    def test_row_one_based(self):
+        assert extract_by_rows(self.results, [1])[0]["title"] == "A"
+
+
+class TestFormatAbstractOutput(unittest.TestCase):
+    def test_basic_format(self):
+        articles = [{"title": "My Study", "authors": "Smith, J.", "year": "2023",
+                      "doi": "10.1234/a", "abstract": "Some findings."}]
+        output = format_output(articles)
+        assert "## My Study" in output
+        assert "Smith, J. (2023)" in output
+        assert "10.1234/a" in output
+        assert "Some findings." in output
+
+    def test_missing_fields_use_defaults(self):
+        output = format_output([{}])
+        assert "Untitled" in output
+        assert "Unknown" in output
+        assert "No abstract available" in output
+
+    def test_author_list_truncated(self):
+        articles = [{"title": "T", "authors": ["A", "B", "C", "D", "E"]}]
+        output = format_output(articles)
+        assert "A, B, C et al." in output
+
+    def test_author_list_no_truncation(self):
+        articles = [{"title": "T", "authors": ["A", "B"]}]
+        output = format_output(articles)
+        assert "A, B" in output
+        assert "et al." not in output
+
+    def test_empty_list(self):
+        assert format_output([]) == ""
 
 
 class TestBibtexFormatEscaping(unittest.TestCase):

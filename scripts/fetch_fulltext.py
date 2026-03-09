@@ -177,18 +177,20 @@ def try_publisher(doi: str, tmpdir: str, index: int) -> tuple[str | None, str]:
         if response.status_code != 200:
             return None, f"publisher HTTP {response.status_code}"
         content_type = response.headers.get("Content-Type", "")
-        if "pdf" in content_type:
-            pdf_path = os.path.join(tmpdir, f"article_{index}.pdf")
-            with open(pdf_path, "wb") as f:
-                f.write(response.content)
-            if os.path.getsize(pdf_path) > 1000:
-                text = pdf_to_text(pdf_path)
-                os.unlink(pdf_path)
-                if text:
-                    return text, "publisher"
+        if "pdf" not in content_type:
+            return None, "publisher returned HTML, not PDF"
+        pdf_path = os.path.join(tmpdir, f"article_{index}.pdf")
+        with open(pdf_path, "wb") as f:
+            f.write(response.content)
+        if os.path.getsize(pdf_path) > 1000:
+            text = pdf_to_text(pdf_path)
+            os.unlink(pdf_path)
+            if text:
+                return text, "publisher"
+        return None, "publisher PDF too small or text extraction failed"
     except (requests.RequestException, OSError) as e:
         print(f"  Publisher access failed for {doi}: {e}", file=sys.stderr)
-    return None, "publisher access denied"
+    return None, "publisher access failed"
 
 
 # --- Source 4: Sci-Hub ---
@@ -413,7 +415,7 @@ def main() -> None:
     else:
         extraction = {"stats": {}, "articles": {}}
 
-    doi_to_ext_key: dict[str, str] = {}
+    doi_to_ext_key: dict[str, str] = {}  # .lower() on both sides; DOIs are case-insensitive per spec, all sources (PubMed, CrossRef, .bib) use canonical non-encoded form
     for ext_key, article in extraction.get("articles", {}).items():
         doi = article.get("doi", "").strip().lower()
         if doi:

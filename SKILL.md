@@ -78,7 +78,7 @@ Print a protocol summary with: research question, framework (PICO/PEO/SPIDER wit
 Phase 3 operates on `review/search_results.md`. This file is produced by `process_results.py`. If this file does not exist, Phase 3 CANNOT begin.
 
 ```bash
-python "$SKILL_DIR/scripts/process_results.py" review/combined_results.json \
+uv run python "$SKILL_DIR/scripts/process_results.py" review/combined_results.json \
   --deduplicate \
   --format markdown \
   --output review/search_results.md \
@@ -96,7 +96,7 @@ DO NOT proceed to Phase 3 until `review/search_results.md` exists and summary st
 1. **Title Screening**: screen titles in `review/search_results.md` table against inclusion/exclusion criteria, exclude irrelevant, document count excluded
 2. **Abstract Screening**: extract abstracts for retained titles only, then apply criteria rigorously, document reasons for exclusion
    ```bash
-   python "$SKILL_DIR/scripts/extract_abstracts.py" review/combined_results.json \
+   uv run python "$SKILL_DIR/scripts/extract_abstracts.py" review/combined_results.json \
      --rows <space-separated row numbers from title screening>
    ```
 3. **Full-Text Screening**: detailed review against all criteria, document specific exclusion reasons, record final included count

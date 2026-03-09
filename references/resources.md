@@ -38,17 +38,15 @@
 
 ## Dependencies
 
-**Python Packages:** Scripts needing `requests` (`verify_citations.py`, `generate_bib.py`) are invoked via `uv run --with requests` — no manual install needed.
+**Python Packages:** `requests` is declared in `pyproject.toml`; `uv sync` installs it.
 
 **System Tools:**
-- Python >= 3.10
-- uv (manages `requests` dependency at runtime)
+- Python >= 3.11
+- uv (manages dependencies via `pyproject.toml`)
 - pdftotext (from poppler-utils, used by `fetch_fulltext.py` for PDF conversion)
 
 ## Running Tests
 
 ```bash
-uv run --with requests -m unittest discover -s tests -v
+uv run -m pytest tests/ -v
 ```
-
-The `--with requests` flag is required because `verify_citations.py` and `generate_bib.py` import `requests` at module level.

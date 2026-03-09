@@ -204,7 +204,7 @@ def generate_bib(files, output, timeout=10):
     refs_md = extract_refs_md(files)
     md_keys = {doi: info["key"] for doi, info in refs_md.items() if info["key"]}
     bib_entries = {}
-    seen_keys = set(md_keys.values())
+    seen_keys = set(md_keys.values())  # reserves markdown keys so orphan DOIs don't collide; retroactive rename of a pinned md key can't happen in practice because all cited DOIs have a md_keys entry (SKILL.md workflow enforces bibtex blocks)
 
     resolvers = [
         ("doi.org", resolve_bibtex),

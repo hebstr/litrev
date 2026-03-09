@@ -170,10 +170,6 @@ class TestNextSuffix(unittest.TestCase):
         assert _next_suffix(1) == "a"
         assert _next_suffix(26) == "z"
 
-    def test_numbers_after_z(self):
-        assert _next_suffix(27) == "27"
-        assert _next_suffix(100) == "100"
-
 
 class TestFilterByYear(unittest.TestCase):
     def test_start_year(self):

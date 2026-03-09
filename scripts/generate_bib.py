@@ -223,7 +223,7 @@ def generate_bib(files, output, timeout=10):
                         old_name, new_name = renamed
                         for d, e in bib_entries.items():
                             if re.match(rf'@\w+\{{{re.escape(old_name)},', e):
-                                bib_entries[d] = e.replace(f"{old_name},", f"{new_name},", 1)
+                                bib_entries[d] = _set_entry_key(e, new_name)
                                 break
                 bib_entries[doi] = entry.strip()
                 print(f"OK ({name}): {doi}")

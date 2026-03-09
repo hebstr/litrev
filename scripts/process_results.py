@@ -9,13 +9,12 @@ import json
 import os
 import re
 import sys
-from typing import Dict, List
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 from bibtex_keys import unique_key as _unique_key, escape_bibtex as _escape_bibtex, build_bibtex_entry as _build_bibtex_entry
 
-def _format_markdown(results: List[Dict], top_n: int = 0) -> str:
+def _format_markdown(results: list[dict], top_n: int = 0) -> str:
     md = "# Literature Search Results\n\n"
     md += f"**Search Date**: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
     md += f"**Total Results**: {len(results)}\n\n"
@@ -100,7 +99,7 @@ def _format_markdown(results: List[Dict], top_n: int = 0) -> str:
     return md
 
 
-def _format_bibtex(results: List[Dict]) -> str:
+def _format_bibtex(results: list[dict]) -> str:
     entries = []
     seen_keys = set()
     key_to_index = {}
@@ -114,7 +113,7 @@ def _format_bibtex(results: List[Dict]) -> str:
             elif isinstance(authors, str) and authors:
                 first_author = re.split(r'[,\s]', authors.split(' and ')[0].strip())[0]
         first_author = first_author or 'unknown'
-        base_key = f"{first_author}_{result.get('year', '0000')}"
+        base_key = re.sub(r'[^a-zA-Z0-9_\-]', '', f"{first_author}_{result.get('year', '0000')}")
         cite_key, renamed = _unique_key(base_key, seen_keys)
         if renamed:
             old_name, new_name = renamed
@@ -150,7 +149,7 @@ _RIS_TYPE_MAP = {
 }
 
 
-def _format_ris(results: List[Dict]) -> str:
+def _format_ris(results: list[dict]) -> str:
     ris = ""
     for result in results:
         ris += f"TY  - {_RIS_TYPE_MAP.get(result.get('type', 'article'), 'JOUR')}\n"
@@ -206,13 +205,13 @@ _FORMATTERS = {
 }
 
 
-def format_search_results(results: List[Dict], output_format: str = 'json', top_n: int = 0) -> str:
+def format_search_results(results: list[dict], output_format: str = 'json', top_n: int = 0) -> str:
     formatter = _FORMATTERS.get(output_format)
     if formatter is None:
         raise ValueError(f"Unknown format: {output_format}")
     return formatter(results, top_n=top_n)
 
-def deduplicate_results(results: List[Dict]) -> List[Dict]:
+def deduplicate_results(results: list[dict]) -> list[dict]:
     """
     Remove duplicate results based on PMID, DOI, or title.
 
@@ -252,7 +251,7 @@ def deduplicate_results(results: List[Dict]) -> List[Dict]:
 
     return unique_results
 
-def rank_results(results: List[Dict], criteria: str = 'citations') -> List[Dict]:
+def rank_results(results: list[dict], criteria: str = 'citations') -> list[dict]:
     """
     Rank results by specified criteria.
 
@@ -272,7 +271,7 @@ def rank_results(results: List[Dict], criteria: str = 'citations') -> List[Dict]
     else:
         return results
 
-def filter_by_year(results: List[Dict], start_year: int = None, end_year: int = None) -> List[Dict]:
+def filter_by_year(results: list[dict], start_year: int = None, end_year: int = None) -> list[dict]:
     """
     Filter results by publication year range.
 
@@ -300,7 +299,7 @@ def filter_by_year(results: List[Dict], start_year: int = None, end_year: int = 
 
     return filtered
 
-def generate_search_summary(results: List[Dict]) -> Dict:
+def generate_search_summary(results: list[dict]) -> dict:
     """
     Generate summary statistics for search results.
 
@@ -342,7 +341,7 @@ def generate_search_summary(results: List[Dict]) -> Dict:
 
     return summary
 
-def filter_by_study_type(results: List[Dict], study_types: List[str]) -> List[Dict]:
+def filter_by_study_type(results: list[dict], study_types: list[str]) -> list[dict]:
     """
     Filter results by study design type.
 

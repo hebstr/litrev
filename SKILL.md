@@ -128,7 +128,7 @@ Print a summary table of ALL included studies with columns: Author (Year), Desig
 Extract all numerical claims from included article abstracts into a structured JSON. This file is the **single source of truth** for numbers that may be cited in the review.
 
 ```bash
-python "$SKILL_DIR/scripts/extract_data.py" review/combined_results.json \
+uv run python "$SKILL_DIR/scripts/extract_data.py" review/combined_results.json \
   --rows <space-separated row numbers of included articles> \
   --fetch-abstracts \
   --output review/extracted_claims.json
@@ -170,7 +170,7 @@ Verify `review/<topic>_review.md` is complete: YAML header, Introduction, Method
 ### ═══ GATE 6a — VERIFY ALL CITATIONS ═══
 
 ```bash
-uv run --with requests python "$SKILL_DIR/scripts/verify_citations.py" review/<topic>_review.md \
+uv run python "$SKILL_DIR/scripts/verify_citations.py" review/<topic>_review.md \
   --timeout 15 --no-retractions
 ```
 
@@ -183,7 +183,7 @@ Review the generated `review/<topic>_review_citation_report.json`. Fix any faile
 Phase 7 requires `review/references.bib`. This file is produced by `generate_bib.py`. If this file does not exist, Phase 7 CANNOT begin.
 
 ```bash
-uv run --with requests python "$SKILL_DIR/scripts/generate_bib.py" review/<topic>_review.md \
+uv run python "$SKILL_DIR/scripts/generate_bib.py" review/<topic>_review.md \
   --output review/references.bib
 ```
 
@@ -196,7 +196,7 @@ Cross-verify all numerical claims in the review against the extracted data from 
 **Step 1 — First verification pass:**
 
 ```bash
-python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
+uv run python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
   --claims review/extracted_claims.json \
   --output review/claims_audit.json
 ```
@@ -204,7 +204,7 @@ python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
 **Step 2 — Enrich with full-text**: if many claims are UNVERIFIED, fetch full-text articles (PMC → Unpaywall → Sci-Hub) to extract additional claims:
 
 ```bash
-python "$SKILL_DIR/scripts/fetch_fulltext.py" review/claims_audit.json \
+uv run python "$SKILL_DIR/scripts/fetch_fulltext.py" review/claims_audit.json \
   --extraction review/extracted_claims.json \
   --bib review/references.bib \
   --output review/extracted_claims.json
@@ -215,7 +215,7 @@ This tries open-access sources first (PMC, Unpaywall), then Sci-Hub as fallback 
 **Step 3 — Re-verify** with enriched data:
 
 ```bash
-python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
+uv run python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
   --claims review/extracted_claims.json \
   --output review/claims_audit.json
 ```
@@ -288,6 +288,6 @@ Without VPN, the skill works with free sources only (PubMed, PMC, Unpaywall, Sem
 
 ## Dependencies
 
-- **Python** >= 3.10
-- **uv** (manages `requests` dependency at runtime via `uv run --with requests`)
+- **Python** >= 3.11
+- **uv** (manages dependencies via `pyproject.toml`; run `uv sync` to install)
 - **pdftotext** (from `poppler-utils`, used by `fetch_fulltext.py`)

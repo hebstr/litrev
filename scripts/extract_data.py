@@ -18,31 +18,15 @@ import os
 import re
 import sys
 import time
-import urllib.request
-import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Any
 
+import requests
 
-NUM_PATTERN = re.compile(
-    r"(?<![A-Za-z\d/])"
-    r"("
-    r"\d+(?:[.,]\d+)?%"             # percentage: 9.7%, 36,4%
-    r"|\d+(?:[.,]\d+)?"             # plain number: 1600, 3.2
-    r")"
-    r"(?![A-Za-z\d])"
-)
-
-STAT_PATTERN = re.compile(
-    r"("
-    r"(?:OR|HR|RR|RD|AOR|aOR|aHR|CI|NNT|NNH|SMD|WMD|MD|IRR|SIR|PR)"
-    r"[\s:=]*"
-    r"[\d.,\-–\s()%]+"
-    r"|p\s*[<=>\s]+\s*[\d.,]+"
-    r"|(?:95\s*%?\s*CI)\s*[:=]?\s*[\[(][\d.,\-–\s]+[\])]"
-    r")",
-    re.IGNORECASE,
-)
+sys.path.insert(0, os.path.dirname(__file__))
+from claim_patterns import extract_claims
+from bibtex_keys import unique_key as _unique_key
+from http_utils import request_with_retry as _request_with_retry
 
 
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -53,18 +37,23 @@ def fetch_abstracts_from_pubmed(pmids: list[str]) -> dict[str, str]:
     abstracts: dict[str, str] = {}
     for i in range(0, len(pmids), BATCH_SIZE):
         batch = pmids[i:i + BATCH_SIZE]
-        params = urllib.parse.urlencode({
-            "db": "pubmed",
-            "id": ",".join(batch),
-            "rettype": "xml",
-            "retmode": "xml",
-        })
-        url = f"{EFETCH_URL}?{params}"
-        req = urllib.request.Request(url, headers={"User-Agent": "LiteratureReviewSkill/1.0"})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            xml_data = resp.read().decode("utf-8")
+        try:
+            response = _request_with_retry(
+                "GET", EFETCH_URL,
+                params={
+                    "db": "pubmed",
+                    "id": ",".join(batch),
+                    "rettype": "xml",
+                    "retmode": "xml",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            root = ET.fromstring(response.text)  # safe: CPython expat doesn't resolve external entities (no XXE)
+        except (requests.RequestException, ET.ParseError) as e:
+            print(f"  Batch {i//BATCH_SIZE + 1} failed ({len(batch)} PMIDs): {e}", file=sys.stderr)
+            continue
 
-        root = ET.fromstring(xml_data)
         for article in root.findall(".//PubmedArticle"):
             pmid_el = article.find(".//PMID")
             if pmid_el is None:
@@ -93,92 +82,38 @@ def make_bibtex_key(article: dict[str, Any]) -> str:
     authors = article.get("authors", "")
     last_name = ""
     if isinstance(authors, list):
-        if authors:
-            last_name = authors[0].split()[0].rstrip(",")
+        parts = authors[0].split() if authors else []
+        if parts:
+            last_name = parts[0].rstrip(",")
     elif authors:
         first_entry = authors.split(";")[0].strip()
-        parts = first_entry.split()
-        if len(parts) >= 2:
-            last_name = parts[0].rstrip(",")
-        elif parts:
-            last_name = parts[0]
+        if "," in first_entry:
+            last_name = first_entry.split(",")[0].strip()
+        else:
+            parts = first_entry.split()
+            if parts:
+                last_name = parts[0]
     if not last_name:
         last_name = article.get("first_author", "Unknown")
+    last_name = last_name.replace(" ", "")  # "van der Berg" → "vanderBerg" (BibTeX keys cannot contain spaces)
     year = str(article.get("year", "0000"))
     return f"{last_name}_{year}"
 
 
 def deduplicate_keys(keys: list[str]) -> list[str]:
-    counts: dict[str, int] = {}
-    for k in keys:
-        counts[k] = counts.get(k, 0) + 1
-
-    duplicates = {k for k, v in counts.items() if v > 1}
-    if not duplicates:
-        return keys
-
-    suffix_counters: dict[str, int] = {}
-    result = []
-    for k in keys:
-        if k in duplicates:
-            suffix_counters[k] = suffix_counters.get(k, 0) + 1
-            result.append(f"{k}{chr(96 + suffix_counters[k])}")
-        else:
-            result.append(k)
-    return result
-
-
-def extract_context(abstract: str, match_start: int, match_end: int, window: int = 80) -> str:
-    start = max(0, match_start - window)
-    end = min(len(abstract), match_end + window)
-
-    snippet = abstract[start:end].strip()
-    if start > 0:
-        snippet = "..." + snippet
-    if end < len(abstract):
-        snippet = snippet + "..."
-    return snippet
-
-
-def extract_claims(abstract: str) -> list[dict[str, str]]:
-    if not abstract:
-        return []
-
-    claims: list[dict[str, str]] = []
     seen: set[str] = set()
-
-    for m in STAT_PATTERN.finditer(abstract):
-        value = m.group(0).strip()
-        if value in seen:
-            continue
-        seen.add(value)
-        claims.append({
-            "type": "statistic",
-            "value": value,
-            "verbatim": extract_context(abstract, m.start(), m.end()),
-        })
-
-    for m in NUM_PATTERN.finditer(abstract):
-        value = m.group(0).strip()
-        if value in seen or len(value) == 1:
-            continue
-
-        already_in_stat = any(
-            m.start() >= sm.start() and m.end() <= sm.end()
-            for sm in STAT_PATTERN.finditer(abstract)
-        )
-        if already_in_stat:
-            continue
-
-        seen.add(value)
-        claim_type = "percentage" if "%" in value else "number"
-        claims.append({
-            "type": claim_type,
-            "value": value,
-            "verbatim": extract_context(abstract, m.start(), m.end()),
-        })
-
-    return claims
+    first_index: dict[str, int] = {}
+    result: list[str] = []
+    for i, base_key in enumerate(keys):
+        new_key, renamed = _unique_key(base_key, seen)
+        if renamed:
+            old_name, new_name = renamed
+            idx = first_index.pop(old_name)
+            result[idx] = new_name
+            first_index[new_name] = idx
+        first_index[new_key] = len(result)
+        result.append(new_key)
+    return result
 
 
 def process_articles(

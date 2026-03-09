@@ -1,5 +1,6 @@
 """Shared BibTeX utilities."""
 
+import os
 import re
 
 
@@ -24,6 +25,9 @@ def escape_bibtex(value):
     """Escape LaTeX/BibTeX special characters in a field value.
 
     Skips characters that are already escaped to avoid double-escaping.
+    Split/rejoin on already-escaped sequences, then translate each fragment.
+    Safe: \textasciitilde{} contains no literal '~' (U+007E), so translate
+    won't corrupt it. Function is idempotent (verified).
     """
     parts = _ALREADY_ESCAPED.split(value)
     escaped_parts = [p.translate(_BIBTEX_SPECIAL) for p in parts]
@@ -56,6 +60,26 @@ def strip_code_blocks(text, keep_bibtex=False):
     return re.sub(r'```.*?```', '', text, flags=re.DOTALL)
 
 
+_BIB_ENTRY_PATTERN = re.compile(r"@\w+\{([\w-]+),")
+_BIB_DOI_PATTERN = re.compile(r"doi\s*=\s*\{([^}]+)\}", re.IGNORECASE)
+
+
+def parse_bib_keys_to_doi(bib_path):
+    """Parse a .bib file and return a dict mapping BibTeX keys to lowercase DOIs."""
+    if not os.path.isfile(bib_path):
+        return {}
+    with open(bib_path, "r", encoding="utf-8") as f:
+        content = f.read()
+    entries = re.split(r"(?=@\w+\{)", content)
+    key_to_doi = {}
+    for entry in entries:
+        key_match = _BIB_ENTRY_PATTERN.search(entry)
+        doi_match = _BIB_DOI_PATTERN.search(entry)
+        if key_match and doi_match:
+            key_to_doi[key_match.group(1)] = doi_match.group(1).strip().lower()
+    return key_to_doi
+
+
 _NO_ESCAPE_FIELDS = {"doi", "url", "eprint"}
 
 
@@ -65,6 +89,10 @@ def build_bibtex_entry(entry_type, key, fields):
     Fields with empty/None values are skipped.
     Values are escaped except for fields in _NO_ESCAPE_FIELDS.
     """
+    # Each resolver (doi.org, CrossRef, PubMed) parses author names differently
+    # to build an initial key. This sanitizer is the single guarantee that the
+    # final key is valid BibTeX (no spaces, no special chars).
+    key = re.sub(r'[^a-zA-Z0-9_\-]', '', key)
     lines = [f"@{entry_type}{{{key},"]
     for name, value in fields.items():
         if not value:
@@ -80,8 +108,8 @@ def build_bibtex_entry(entry_type, key, fields):
 
 
 def _next_suffix(n):
-    """Return 'a', 'b', ... 'z', '27', '28', ... for n = 1, 2, ..."""
-    return chr(ord('a') - 1 + n) if n <= 26 else str(n)
+    """Return 'a', 'b', ... 'z' for n = 1..26."""
+    return chr(ord('a') - 1 + n)
 
 
 def unique_key(key, seen_keys):
@@ -99,15 +127,17 @@ def unique_key(key, seen_keys):
         seen_keys.add(key)
         return key, None
 
+    # NOTE: the bare key stays in seen_keys intentionally — removing it would
+    # cause a later call with the same base key to miss the collision.
     renamed = None
     if f"{key}a" not in seen_keys:
         seen_keys.add(f"{key}a")
         renamed = (key, f"{key}a")
 
-    n = 1
-    while True:
+    # In practice, rarely more than 3-5 homonymes per key in a literature review.
+    for n in range(1, 11):
         candidate = f"{key}{_next_suffix(n)}"
         if candidate not in seen_keys:
             seen_keys.add(candidate)
             return candidate, renamed
-        n += 1
+    raise RuntimeError(f"Could not generate unique key for '{key}' after 10 suffixes")

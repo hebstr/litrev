@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for extract_data.py, verify_claims.py, and fetch_fulltext.py."""
+"""Unit tests for claim_patterns.py, extract_data.py, verify_claims.py, and fetch_fulltext.py."""
 
 import sys
 import os
@@ -7,21 +7,114 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'scripts'))
 
+from claim_patterns import (
+    extract_claims as cp_extract_claims,
+    extract_context as cp_extract_context,
+    NUM_PATTERN,
+    STAT_PATTERN,
+)
+from claim_patterns import extract_claims
 from extract_data import (
-    extract_claims,
     make_bibtex_key,
     deduplicate_keys,
-    extract_context,
 )
+from claim_patterns import extract_context
 from verify_claims import (
     normalize_number,
     number_matches,
     extract_review_claims,
     resolve_key,
     build_doi_index,
-    parse_bib_keys_to_doi,
+    verify,
 )
+from bibtex_keys import parse_bib_keys_to_doi
 from fetch_fulltext import extract_claims_from_text
+
+
+# === claim_patterns.py (direct tests) ===
+
+
+class TestNumPattern(unittest.TestCase):
+    def test_percentage(self):
+        assert NUM_PATTERN.search("was 9.7% in") is not None
+
+    def test_plain_number(self):
+        assert NUM_PATTERN.search("of 1600 patients") is not None
+
+    def test_single_digit_matches_regex(self):
+        assert NUM_PATTERN.search("were 3 groups") is not None
+
+    def test_no_match_in_word(self):
+        assert NUM_PATTERN.search("COVID19") is None
+
+    def test_comma_decimal(self):
+        m = NUM_PATTERN.search("was 3,5%")
+        assert m is not None
+        assert m.group(0) == "3,5%"
+
+
+class TestStatPattern(unittest.TestCase):
+    def test_odds_ratio(self):
+        assert STAT_PATTERN.search("OR 2.35 (95% CI 1.12-4.98)") is not None
+
+    def test_hazard_ratio(self):
+        assert STAT_PATTERN.search("HR = 1.45") is not None
+
+    def test_p_value(self):
+        assert STAT_PATTERN.search("p < 0.001") is not None
+
+    def test_confidence_interval(self):
+        assert STAT_PATTERN.search("95% CI [1.10-1.88]") is not None
+
+    def test_adjusted_or(self):
+        assert STAT_PATTERN.search("aOR 0.72 (0.55-0.94)") is not None
+
+    def test_no_false_positive(self):
+        assert STAT_PATTERN.search("the ORGANIZATION was founded") is None
+
+
+class TestCpExtractClaims(unittest.TestCase):
+    def test_source_field(self):
+        claims = cp_extract_claims("rate was 25%", source="pmc")
+        assert all(c["source"] == "pmc" for c in claims)
+
+    def test_no_source_field(self):
+        claims = cp_extract_claims("rate was 25%")
+        assert all("source" not in c for c in claims)
+
+    def test_stat_subsumes_number(self):
+        claims = cp_extract_claims("OR 2.35 was significant.")
+        stat_vals = [c["value"] for c in claims if c["type"] == "statistic"]
+        num_vals = [c["value"] for c in claims if c["type"] == "number"]
+        assert any("2.35" in v for v in stat_vals)
+        assert not any("2.35" == v for v in num_vals)
+
+    def test_deduplication(self):
+        claims = cp_extract_claims("25% and another 25% observed.")
+        values = [c["value"] for c in claims]
+        assert values.count("25%") == 1
+
+    def test_single_digit_excluded(self):
+        claims = cp_extract_claims("There were 3 groups.")
+        values = [c["value"] for c in claims]
+        assert "3" not in values
+
+    def test_empty_input(self):
+        assert cp_extract_claims("") == []
+
+
+class TestCpExtractContext(unittest.TestCase):
+    def test_short_text(self):
+        ctx = cp_extract_context("The rate was 25%.", 13, 16, window=80)
+        assert "25%" in ctx
+        assert not ctx.startswith("...")
+
+    def test_long_text_truncated(self):
+        text = "A" * 200 + "TARGET" + "B" * 200
+        ctx = cp_extract_context(text, 200, 206, window=20)
+        assert "TARGET" in ctx
+        assert ctx.startswith("...")
+        assert ctx.endswith("...")
 
 
 # === extract_data.py ===
@@ -108,6 +201,18 @@ class TestMakeBibtexKey(unittest.TestCase):
         article = {"authors": "Dupont, Marie; Martin, Jean", "year": 2022}
         assert make_bibtex_key(article) == "Dupont_2022"
 
+    def test_van_der_prefix(self):
+        article = {"authors": "van der Berg, Jan; Smith, John", "year": 2021}
+        assert make_bibtex_key(article) == "vanderBerg_2021"
+
+    def test_cjk_author(self):
+        article = {"authors": "Wang J; Li X", "year": 2023}
+        assert make_bibtex_key(article) == "Wang_2023"
+
+    def test_hyphenated_name(self):
+        article = {"authors": "Al-Rashid, Omar; Jones, Paul", "year": 2020}
+        assert make_bibtex_key(article) == "Al-Rashid_2020"
+
 
 class TestDeduplicateKeys(unittest.TestCase):
     def test_no_duplicates(self):
@@ -117,19 +222,19 @@ class TestDeduplicateKeys(unittest.TestCase):
     def test_two_duplicates(self):
         keys = ["Smith_2020", "Smith_2020"]
         result = deduplicate_keys(keys)
-        assert result == ["Smith_2020a", "Smith_2020b"]
+        assert result == ["Smith_2020a", "Smith_2020b"], f"got {result}"
 
     def test_three_duplicates(self):
         keys = ["X_2020", "X_2020", "X_2020"]
         result = deduplicate_keys(keys)
-        assert result == ["X_2020a", "X_2020b", "X_2020c"]
+        assert result == ["X_2020a", "X_2020b", "X_2020c"], f"got {result}"
 
     def test_mixed(self):
         keys = ["A_2020", "B_2020", "A_2020"]
         result = deduplicate_keys(keys)
-        assert result[0] == "A_2020a"
-        assert result[1] == "B_2020"
-        assert result[2] == "A_2020b"
+        assert result[0] == "A_2020a", f"got {result[0]}"
+        assert result[1] == "B_2020", f"got {result[1]}"
+        assert result[2] == "A_2020b", f"got {result[2]}"
 
 
 class TestExtractContext(unittest.TestCase):
@@ -180,11 +285,26 @@ class TestNumberMatches(unittest.TestCase):
     def test_no_match(self):
         assert not number_matches("99.9", "OR 2.35")
 
-    def test_close_float(self):
-        assert number_matches("2.3", "2.34")
+    def test_close_float_no_match(self):
+        assert not number_matches("2.3", "2.34")
 
     def test_not_close_enough(self):
         assert not number_matches("2.3", "2.9")
+
+    def test_no_partial_digit_match(self):
+        assert not number_matches("3", "OR 2.35 (95% CI 1.12-4.98)")
+
+    def test_no_substring_in_larger_number(self):
+        assert not number_matches("12", "123 patients")
+
+    def test_no_integer_prefix_of_decimal(self):
+        assert not number_matches("10", "was 10.5%")
+        assert not number_matches("42", "was 42.5%")
+        assert not number_matches("1", "HR 1.45")
+        assert not number_matches("2", "OR 2.35")
+
+    def test_exact_within_stat_string(self):
+        assert number_matches("95", "95% CI 1.12-4.98")
 
 
 class TestExtractReviewClaims(unittest.TestCase):
@@ -221,6 +341,27 @@ class TestExtractReviewClaims(unittest.TestCase):
         text = "A rate of 15% [@Smith_2020a] was found."
         claims = extract_review_claims(text)
         assert any(c["citation_key"] == "Smith_2020a" for c in claims)
+
+    def test_sentence_boundary_blocks_match(self):
+        text = "A cohort of 500 patients was enrolled. Other studies confirm this trend [@Jones_2021]."
+        claims = extract_review_claims(text)
+        matched_keys = [c["citation_key"] for c in claims if "500" in c["value"]]
+        assert "Jones_2021" not in matched_keys
+
+    def test_same_sentence_still_matches(self):
+        text = "The prevalence was 9.7% in the adult population across three European countries [@Smith_2020]."
+        claims = extract_review_claims(text)
+        assert any(c["citation_key"] == "Smith_2020" and "9.7" in c["value"] for c in claims)
+
+    def test_decimal_dot_not_blocked(self):
+        text = "OR 2.35 was reported [@Doe_2022]."
+        claims = extract_review_claims(text)
+        assert any("2.35" in c["value"] for c in claims)
+
+    def test_abbreviation_dot_not_blocked(self):
+        text = "In a study by Smith et al. the rate was 42% [@Smith_2020]."
+        claims = extract_review_claims(text)
+        assert any("42" in c["value"] and c["citation_key"] == "Smith_2020" for c in claims)
 
 
 class TestResolveKey(unittest.TestCase):
@@ -315,6 +456,46 @@ class TestExtractClaimsFromText(unittest.TestCase):
         pct_claims = [c for c in claims if "42%" in c["value"]]
         assert len(pct_claims) >= 1
         assert "..." in pct_claims[0]["verbatim"]
+
+
+class TestVerify(unittest.TestCase):
+    def _make_extraction(self, articles):
+        return {"articles": articles}
+
+    def _claim(self, value="25%", key="Smith_2020"):
+        return {"value": value, "type": "percentage", "citation_key": key, "context": "..."}
+
+    def test_verified(self):
+        result = verify(
+            [self._claim("25%")],
+            self._make_extraction({"Smith_2020": {"doi": "", "has_abstract": True, "claims": [{"value": "25%"}]}}),
+        )
+        assert result["claims"][0]["status"] == "VERIFIED"
+        assert result["summary"]["verified"] == 1
+
+    def test_unverified(self):
+        result = verify(
+            [self._claim("99%")],
+            self._make_extraction({"Smith_2020": {"doi": "", "has_abstract": True, "claims": [{"value": "25%"}]}}),
+        )
+        assert result["claims"][0]["status"] == "UNVERIFIED"
+        assert result["summary"]["unverified"] == 1
+
+    def test_no_abstract(self):
+        result = verify(
+            [self._claim("10")],
+            self._make_extraction({"Smith_2020": {"doi": "", "has_abstract": False, "claims": []}}),
+        )
+        assert result["claims"][0]["status"] == "NO_ABSTRACT"
+        assert result["summary"]["no_abstract"] == 1
+
+    def test_no_extraction(self):
+        result = verify(
+            [self._claim("10", key="Unknown_2020")],
+            self._make_extraction({}),
+        )
+        assert result["claims"][0]["status"] == "NO_EXTRACTION"
+        assert result["summary"]["no_extraction"] == 1
 
 
 if __name__ == "__main__":

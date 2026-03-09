@@ -11,7 +11,6 @@ import os
 import re
 import sys
 import time
-from typing import Dict, List, Tuple
 
 import requests
 
@@ -28,12 +27,12 @@ class CitationVerifier:
         kwargs.setdefault("timeout", self.timeout)
         return _request_with_retry(method, url, max_retries=self.max_retries, **kwargs)
 
-    def extract_dois(self, text: str) -> List[str]:
+    def extract_dois(self, text: str) -> list[str]:
         """Extract all DOIs from text (excluding fenced code blocks, keeping bibtex)."""
         text = _strip_code_blocks(text, keep_bibtex=True)
         return _extract_doi_matches(text)
 
-    def verify_doi(self, doi: str) -> Tuple[bool, Dict]:
+    def verify_doi(self, doi: str) -> tuple[bool, dict]:
         """
         Verify a DOI and retrieve metadata.
         Returns (is_valid, metadata)
@@ -53,7 +52,7 @@ class CitationVerifier:
             print(f"  DOI verification error for {doi}: {e}")
             return False, {"error": str(e)}
 
-    def _get_crossref_metadata(self, doi: str) -> Dict:
+    def _get_crossref_metadata(self, doi: str) -> dict:
         """Get metadata from CrossRef API."""
         try:
             url = f"https://api.crossref.org/works/{doi}"
@@ -80,7 +79,7 @@ class CitationVerifier:
             print(f"  CrossRef metadata error for {doi}: {e}")
             return {"error": str(e)}
 
-    def _format_authors(self, authors: List[Dict]) -> str:
+    def _format_authors(self, authors: list[dict]) -> str:
         """Format author list."""
         if not authors:
             return ""
@@ -100,7 +99,7 @@ class CitationVerifier:
 
         return ", ".join(formatted)
 
-    def _extract_year(self, message: Dict) -> str:
+    def _extract_year(self, message: dict) -> str:
         """Extract publication year (published → published-print → published-online)."""
         for field in ("published", "published-print", "published-online"):
             date_parts = message.get(field, {}).get('date-parts', [[]])
@@ -108,7 +107,7 @@ class CitationVerifier:
                 return str(date_parts[0][0])
         return ""
 
-    def verify_pmid(self, pmid: str) -> Tuple[bool, Dict]:
+    def verify_pmid(self, pmid: str) -> tuple[bool, dict]:
         """
         Verify a PMID via NCBI E-utilities.
         Returns (is_valid, metadata)
@@ -194,13 +193,13 @@ class CitationVerifier:
             print(f"  Retraction check error for PMID {pmid}: {e}")
             return False
 
-    def extract_pmids(self, text: str) -> List[str]:
+    def extract_pmids(self, text: str) -> list[str]:
         """Extract all PMIDs from text (PMID: 12345678 and pmid = {12345678} patterns)."""
         pmids = re.findall(r'PMID:\s*(\d+)', text)
         pmids += re.findall(r'pmid\s*=\s*\{(\d+)\}', text, re.IGNORECASE)
         return list(dict.fromkeys(pmids))
 
-    def verify_citations_in_file(self, filepath: str, check_retractions: bool = True) -> Dict:
+    def verify_citations_in_file(self, filepath: str, check_retractions: bool = True) -> dict:
         """
         Verify all citations in a markdown file.
         Returns a report of verification results.

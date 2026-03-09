@@ -29,10 +29,16 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.request
-import urllib.parse
 import xml.etree.ElementTree as ET
 from typing import Any
+from urllib.parse import quote
+
+import requests
+
+sys.path.insert(0, os.path.dirname(__file__))
+from bibtex_keys import parse_bib_keys_to_doi as _parse_bib_keys_to_doi
+from claim_patterns import extract_claims as _extract_claims
+from http_utils import request_with_retry as _request_with_retry
 
 
 SCIHUB_MIRRORS = [
@@ -45,77 +51,45 @@ PDF_URL_PATTERN = re.compile(
     r'citation_pdf_url"\s+content="([^"]+)"'
 )
 
-NUM_PATTERN = re.compile(
-    r"(?<![A-Za-z\d/])"
-    r"("
-    r"\d+(?:[.,]\d+)?%"
-    r"|\d+(?:[.,]\d+)?"
-    r")"
-    r"(?![A-Za-z\d])"
-)
-
-STAT_PATTERN = re.compile(
-    r"("
-    r"(?:OR|HR|RR|RD|AOR|aOR|aHR|CI|NNT|NNH|SMD|WMD|MD|IRR|SIR|PR)"
-    r"[\s:=]*"
-    r"[\d.,\-–\s()%]+"
-    r"|p\s*[<=>\s]+\s*[\d.,]+"
-    r"|(?:95\s*%?\s*CI)\s*[:=]?\s*[\[(][\d.,\-–\s]+[\])]"
-    r")",
-    re.IGNORECASE,
-)
-
-BIB_ENTRY_PATTERN = re.compile(r"@\w+\{(\w+),")
-BIB_DOI_PATTERN = re.compile(r"doi\s*=\s*\{([^}]+)\}", re.IGNORECASE)
-
 ELINK_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 UNPAYWALL_URL = "https://api.unpaywall.org/v2"
-UNPAYWALL_EMAIL = "literature-review-skill@example.com"
+DEFAULT_EMAIL = "literature-review-skill@example.com"
 DOI_RESOLVER = "https://doi.org"
 
-
-def parse_bib_keys_to_doi(bib_path: str) -> dict[str, str]:
-    if not os.path.isfile(bib_path):
-        return {}
-    with open(bib_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    entries = re.split(r"(?=@\w+\{)", content)
-    key_to_doi: dict[str, str] = {}
-    for entry in entries:
-        key_match = BIB_ENTRY_PATTERN.search(entry)
-        doi_match = BIB_DOI_PATTERN.search(entry)
-        if key_match and doi_match:
-            key_to_doi[key_match.group(1)] = doi_match.group(1).strip()
-    return key_to_doi
+_BROWSER_SESSION = requests.Session()
+_BROWSER_SESSION.headers.update({"User-Agent": "LiteratureReviewSkill/1.0"})
 
 
 # --- Source 1: PubMed Central (PMC) ---
 
-def doi_to_pmcid(doi: str) -> str | None:
-    params = urllib.parse.urlencode({
-        "dbfrom": "pubmed",
-        "linkname": "pubmed_pmc",
-        "retmode": "json",
-        "tool": "LiteratureReviewSkill",
-        "email": UNPAYWALL_EMAIL,
-    })
-    search_url = (
-        f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?"
-        f"db=pubmed&term={urllib.parse.quote(doi)}[doi]&retmode=json"
-    )
+def doi_to_pmcid(doi: str, email: str = DEFAULT_EMAIL) -> str | None:
     try:
-        req = urllib.request.Request(search_url, headers={"User-Agent": "LiteratureReviewSkill/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        response = _request_with_retry(
+            "GET",
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+            params={"db": "pubmed", "term": f"{doi}[doi]", "retmode": "json"},
+            timeout=10,
+        )
+        data = response.json()
         pmids = data.get("esearchresult", {}).get("idlist", [])
         if not pmids:
             return None
 
-        link_url = f"{ELINK_URL}?dbfrom=pubmed&db=pmc&id={pmids[0]}&retmode=json&{params}"
-        req = urllib.request.Request(link_url, headers={"User-Agent": "LiteratureReviewSkill/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            link_data = json.loads(resp.read().decode("utf-8"))
+        response = _request_with_retry(
+            "GET", ELINK_URL,
+            params={
+                "dbfrom": "pubmed",
+                "db": "pmc",
+                "id": pmids[0],
+                "linkname": "pubmed_pmc",
+                "retmode": "json",
+                "tool": "LiteratureReviewSkill",
+                "email": email,
+            },
+            timeout=10,
+        )
+        link_data = response.json()
 
         linksets = link_data.get("linksets", [])
         for ls in linksets:
@@ -124,21 +98,27 @@ def doi_to_pmcid(doi: str) -> str | None:
                     links = ldb.get("links", [])
                     if links:
                         return links[0]
-    except Exception:
-        pass
+    except (requests.RequestException, ValueError, KeyError, json.JSONDecodeError) as e:
+        print(f"  PMC ID lookup failed for {doi}: {e}", file=sys.stderr)
     return None
 
 
-def fetch_pmc_text(pmcid: str) -> str | None:
-    url = (
-        f"{EFETCH_URL}?db=pmc&id={pmcid}&rettype=xml&retmode=xml"
-        f"&tool=LiteratureReviewSkill&email={UNPAYWALL_EMAIL}"
-    )
+def fetch_pmc_text(pmcid: str, email: str = DEFAULT_EMAIL) -> str | None:
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "LiteratureReviewSkill/1.0"})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            xml_data = resp.read().decode("utf-8")
-        root = ET.fromstring(xml_data)
+        response = _request_with_retry(
+            "GET", EFETCH_URL,
+            params={
+                "db": "pmc",
+                "id": pmcid,
+                "rettype": "xml",
+                "retmode": "xml",
+                "tool": "LiteratureReviewSkill",
+                "email": email,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        root = ET.fromstring(response.text)  # safe: CPython expat doesn't resolve external entities (no XXE)
         texts = []
         for body in root.findall(".//body"):
             texts.append("".join(body.itertext()))
@@ -146,15 +126,16 @@ def fetch_pmc_text(pmcid: str) -> str | None:
             for abstract in root.findall(".//abstract"):
                 texts.append("".join(abstract.itertext()))
         return " ".join(texts) if texts else None
-    except Exception:
+    except (requests.RequestException, ET.ParseError) as e:
+        print(f"  PMC text fetch failed for {pmcid}: {e}", file=sys.stderr)
         return None
 
 
-def try_pmc(doi: str) -> tuple[str | None, str]:
-    pmcid = doi_to_pmcid(doi)
+def try_pmc(doi: str, email: str = DEFAULT_EMAIL) -> tuple[str | None, str]:
+    pmcid = doi_to_pmcid(doi, email=email)
     if not pmcid:
         return None, "no PMC link"
-    text = fetch_pmc_text(pmcid)
+    text = fetch_pmc_text(pmcid, email=email)
     if text and len(text) > 500:
         return text, f"PMC:{pmcid}"
     return None, "PMC text too short or empty"
@@ -162,14 +143,13 @@ def try_pmc(doi: str) -> tuple[str | None, str]:
 
 # --- Source 2: Unpaywall ---
 
-def try_unpaywall(doi: str) -> tuple[str | None, str]:
-    url = f"{UNPAYWALL_URL}/{urllib.parse.quote(doi, safe='')}?email={UNPAYWALL_EMAIL}"
+def try_unpaywall(doi: str, email: str = DEFAULT_EMAIL) -> tuple[str | None, str]:
+    url = f"{UNPAYWALL_URL}/{quote(doi, safe='')}?email={email}"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "LiteratureReviewSkill/1.0"})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except Exception:
-        return None, "Unpaywall API error"
+        response = _request_with_retry("GET", url, timeout=10)
+        data = response.json()
+    except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+        return None, f"Unpaywall API error: {e}"
 
     best_oa = data.get("best_oa_location")
     if not best_oa:
@@ -187,23 +167,27 @@ def try_unpaywall(doi: str) -> tuple[str | None, str]:
 def try_publisher(doi: str, tmpdir: str, index: int) -> tuple[str | None, str]:
     url = f"{DOI_RESOLVER}/{doi}"
     try:
-        req = urllib.request.Request(url, headers={
-            "User-Agent": "Mozilla/5.0",
-            "Accept": "application/pdf",
-        })
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            content_type = resp.headers.get("Content-Type", "")
-            if "pdf" in content_type:
-                pdf_path = os.path.join(tmpdir, f"article_{index}.pdf")
-                with open(pdf_path, "wb") as f:
-                    f.write(resp.read())
-                if os.path.getsize(pdf_path) > 1000:
-                    text = pdf_to_text(pdf_path)
-                    os.unlink(pdf_path)
-                    if text:
-                        return text, "publisher"
-    except Exception:
-        pass
+        response = _request_with_retry(
+            "GET", url,
+            session=_BROWSER_SESSION,
+            headers={"Accept": "application/pdf"},
+            timeout=30,
+            allow_redirects=True,
+        )
+        if response.status_code != 200:
+            return None, f"publisher HTTP {response.status_code}"
+        content_type = response.headers.get("Content-Type", "")
+        if "pdf" in content_type:
+            pdf_path = os.path.join(tmpdir, f"article_{index}.pdf")
+            with open(pdf_path, "wb") as f:
+                f.write(response.content)
+            if os.path.getsize(pdf_path) > 1000:
+                text = pdf_to_text(pdf_path)
+                os.unlink(pdf_path)
+                if text:
+                    return text, "publisher"
+    except (requests.RequestException, OSError) as e:
+        print(f"  Publisher access failed for {doi}: {e}", file=sys.stderr)
     return None, "publisher access denied"
 
 
@@ -212,11 +196,10 @@ def try_publisher(doi: str, tmpdir: str, index: int) -> tuple[str | None, str]:
 def find_working_mirror() -> str | None:
     for mirror in SCIHUB_MIRRORS:
         try:
-            req = urllib.request.Request(mirror, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if resp.status == 200:
-                    return mirror
-        except Exception:
+            response = _BROWSER_SESSION.get(mirror, timeout=10)
+            if response.status_code == 200:
+                return mirror
+        except requests.RequestException:
             continue
     return None
 
@@ -224,34 +207,52 @@ def find_working_mirror() -> str | None:
 def try_scihub(doi: str, mirror: str) -> tuple[str | None, str]:
     url = f"{mirror}/{doi}"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            html = resp.read().decode("utf-8", errors="replace")
+        response = _BROWSER_SESSION.get(url, timeout=20)
+        html = response.text
         m = PDF_URL_PATTERN.search(html)
         if m:
             pdf_url = m.group(1)
             if pdf_url.startswith("//"):
                 pdf_url = "https:" + pdf_url
             return pdf_url, "sci-hub"
-    except Exception as e:
+    except requests.RequestException as e:
         return None, f"sci-hub error: {e}"
     return None, "no PDF on sci-hub"
 
 
 # --- PDF handling ---
 
+_PDF_MAGIC = b"%PDF"
+_PDF_MAX_SIZE = 100_000_000
+
+
 def download_pdf(pdf_url: str, output_path: str) -> bool:
     try:
-        req = urllib.request.Request(pdf_url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            with open(output_path, "wb") as f:
-                f.write(resp.read())
-        return os.path.getsize(output_path) > 1000
-    except Exception:
+        response = _request_with_retry(
+            "GET", pdf_url, session=_BROWSER_SESSION, timeout=30, stream=True,
+        )
+        if response.status_code != 200:
+            return False
+        size = 0
+        with open(output_path, "wb") as f:
+            for chunk in response.iter_content(8192):
+                size += len(chunk)
+                if size > _PDF_MAX_SIZE:
+                    return False
+                f.write(chunk)
+        if size < 1000:
+            return False
+        with open(output_path, "rb") as f:
+            if not f.read(4).startswith(_PDF_MAGIC):
+                os.unlink(output_path)
+                return False
+        return True
+    except (requests.RequestException, OSError):
         return False
 
 
 def pdf_to_text(pdf_path: str) -> str:
+    # pdf_path is always os.path.join(tmpdir, f"article_{int}.pdf") — no user input reaches argv
     try:
         result = subprocess.run(
             ["pdftotext", "-layout", pdf_path, "-"],
@@ -260,63 +261,13 @@ def pdf_to_text(pdf_path: str) -> str:
             timeout=30,
         )
         return result.stdout
-    except Exception:
+    except (subprocess.SubprocessError, FileNotFoundError, OSError) as e:
+        print(f"  pdftotext failed for {pdf_path}: {e}", file=sys.stderr)
         return ""
 
 
-# --- Claim extraction ---
-
-def extract_context(text: str, start: int, end: int, window: int = 120) -> str:
-    ctx_start = max(0, start - window)
-    ctx_end = min(len(text), end + window)
-    snippet = text[ctx_start:ctx_end].strip()
-    snippet = re.sub(r"\s+", " ", snippet)
-    if ctx_start > 0:
-        snippet = "..." + snippet
-    if ctx_end < len(text):
-        snippet = snippet + "..."
-    return snippet
-
-
 def extract_claims_from_text(text: str, source: str = "fulltext") -> list[dict[str, str]]:
-    if not text:
-        return []
-
-    claims: list[dict[str, str]] = []
-    seen: set[str] = set()
-
-    for m in STAT_PATTERN.finditer(text):
-        value = m.group(0).strip()
-        if value in seen:
-            continue
-        seen.add(value)
-        claims.append({
-            "type": "statistic",
-            "value": value,
-            "source": source,
-            "verbatim": extract_context(text, m.start(), m.end()),
-        })
-
-    for m in NUM_PATTERN.finditer(text):
-        value = m.group(0).strip()
-        if value in seen or len(value) == 1:
-            continue
-        already_in_stat = any(
-            m.start() >= sm.start() and m.end() <= sm.end()
-            for sm in STAT_PATTERN.finditer(text)
-        )
-        if already_in_stat:
-            continue
-        seen.add(value)
-        claim_type = "percentage" if "%" in value else "number"
-        claims.append({
-            "type": claim_type,
-            "value": value,
-            "source": source,
-            "verbatim": extract_context(text, m.start(), m.end()),
-        })
-
-    return claims
+    return _extract_claims(text, source=source)
 
 
 # --- Orchestration ---
@@ -326,12 +277,13 @@ def fetch_article_text(
     tmpdir: str,
     index: int,
     scihub_mirror: str | None,
+    email: str = DEFAULT_EMAIL,
 ) -> tuple[str, str]:
-    text, source = try_pmc(doi)
+    text, source = try_pmc(doi, email=email)
     if text:
         return text, "pmc"
 
-    pdf_url, source = try_unpaywall(doi)
+    pdf_url, source = try_unpaywall(doi, email=email)
     if pdf_url:
         pdf_path = os.path.join(tmpdir, f"article_{index}.pdf")
         if download_pdf(pdf_url, pdf_path):
@@ -339,6 +291,7 @@ def fetch_article_text(
             os.unlink(pdf_path)
             if text:
                 return text, "unpaywall"
+            print(f"  Unpaywall PDF downloaded but text extraction failed (scanned?)", file=sys.stderr)
 
     text, source = try_publisher(doi, tmpdir, index)
     if text:
@@ -353,6 +306,7 @@ def fetch_article_text(
                 os.unlink(pdf_path)
                 if text:
                     return text, "sci-hub"
+                print(f"  Sci-Hub PDF downloaded but text extraction failed (scanned?)", file=sys.stderr)
 
     return "", "not found"
 
@@ -406,6 +360,11 @@ def main() -> None:
         help="Sci-Hub mirror URL (auto-detected if not set)",
     )
     parser.add_argument(
+        "--email",
+        help="Email for Unpaywall API (default: UNPAYWALL_EMAIL env var, "
+        "or literature-review-skill@example.com)",
+    )
+    parser.add_argument(
         "--delay",
         type=float,
         default=3.0,
@@ -415,7 +374,13 @@ def main() -> None:
 
     output_path = args.output or args.extraction
 
-    bib_dois = parse_bib_keys_to_doi(args.bib)
+    email = (
+        args.email
+        or os.environ.get("UNPAYWALL_EMAIL")
+        or DEFAULT_EMAIL
+    )
+
+    bib_dois = _parse_bib_keys_to_doi(args.bib)
 
     if args.dois:
         doi_keys = [(doi, "") for doi in args.dois]
@@ -460,7 +425,7 @@ def main() -> None:
         for i, (doi, bib_key) in enumerate(doi_keys):
             print(f"[{i+1}/{len(doi_keys)}] {doi} ({bib_key})", file=sys.stderr)
 
-            text, source = fetch_article_text(doi, tmpdir, i, scihub_mirror)
+            text, source = fetch_article_text(doi, tmpdir, i, scihub_mirror, email=email)
 
             if not text:
                 print(f"  FAILED: {source}", file=sys.stderr)

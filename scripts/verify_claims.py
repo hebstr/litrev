@@ -23,65 +23,26 @@ import re
 import sys
 from typing import Any
 
+sys.path.insert(0, os.path.dirname(__file__))
+from bibtex_keys import parse_bib_keys_to_doi as _parse_bib_keys_to_doi
+from claim_patterns import STAT_PATTERN as _STAT_PATTERN, NUM_PATTERN as _NUM_PATTERN
 
-CITATION_PATTERN = re.compile(
-    r"\[@([\w]+(?:_\d{4}[a-z]?))"
-    r"(?:\s*;\s*@[\w]+(?:_\d{4}[a-z]?))*"
-    r"\]"
-)
+_CITE_RE = re.compile(
+    r"\[@([\w-]+(?:_\d{4}[a-z]?)(?:\s*;\s*@[\w-]+(?:_\d{4}[a-z]?))*)\]"
+)  # \w = [a-zA-Z0-9_]; dots excluded — safe because build_bibtex_entry strips them from all keys
 
-NUMBER_PATTERN = re.compile(
-    r"(?<![A-Za-z\d/])"
-    r"(\d+(?:[.,]\d+)?)\s*%?"
-    r"(?![A-Za-z\d])"
-)
-
-SENTENCE_WITH_CITATION = re.compile(
-    r"[^.;]*?"
-    r"(\d+(?:[.,]\d+)?)\s*%?"
-    r"[^.;]*?"
-    r"\[@([\w]+(?:_\d{4}[a-z]?)"
-    r"(?:\s*;\s*@[\w]+(?:_\d{4}[a-z]?))*"
-    r")\]"
-)
-
-INLINE_NUM_CITE = re.compile(
-    r"(\d+(?:[.,]\d+)?)\s*%?"
-    r"(?:[^@\[\]]{0,150})"
-    r"\[@([\w]+(?:_\d{4}[a-z]?)(?:\s*;\s*@[\w]+(?:_\d{4}[a-z]?))*)\]"
-)
-
-STAT_NEAR_CITE = re.compile(
-    r"("
-    r"(?:OR|HR|RR|AOR|aOR|aHR|SMD|WMD|MD|IRR|SIR|PR)"
-    r"[\s:=]*[\d.,\-–\s()%]+"
-    r"|p\s*[<=>\s]+\s*[\d.,]+"
-    r"|(?:95\s*%?\s*CI)\s*[:=]?\s*[\[(][\d.,\-–\s]+[\])]"
-    r")"
-    r"(?:[^@\[\]]{0,150})"
-    r"\[@([\w]+(?:_\d{4}[a-z]?)(?:\s*;\s*@[\w]+(?:_\d{4}[a-z]?))*)\]",
-    re.IGNORECASE,
-)
+_SENTENCE_SPLIT = re.compile(r"\.(?:\s+[A-Z]|\s*\n)")
 
 
-BIB_ENTRY_PATTERN = re.compile(r"@\w+\{(\w+),")
-BIB_DOI_PATTERN = re.compile(r"doi\s*=\s*\{([^}]+)\}", re.IGNORECASE)
-
-
-def parse_bib_keys_to_doi(bib_path: str) -> dict[str, str]:
-    if not os.path.isfile(bib_path):
-        return {}
-    with open(bib_path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    entries = re.split(r"(?=@\w+\{)", content)
-    key_to_doi: dict[str, str] = {}
-    for entry in entries:
-        key_match = BIB_ENTRY_PATTERN.search(entry)
-        doi_match = BIB_DOI_PATTERN.search(entry)
-        if key_match and doi_match:
-            key_to_doi[key_match.group(1)] = doi_match.group(1).strip().lower()
-    return key_to_doi
+def _split_sentence(text: str, pos: int) -> tuple[int, int]:
+    start = 0
+    for m in _SENTENCE_SPLIT.finditer(text):
+        boundary = m.start() + 1
+        if boundary <= pos:
+            start = boundary
+        else:
+            return start, boundary
+    return start, len(text)
 
 
 def build_doi_index(extraction: dict[str, Any]) -> dict[str, str]:
@@ -99,6 +60,9 @@ def resolve_key(
     bib_dois: dict[str, str],
     doi_index: dict[str, str],
 ) -> str | None:
+    # extract_data.py and generate_bib.py generate keys independently.
+    # Direct match handles the common case; DOI fallback bridges when keys
+    # diverge (e.g. collision dedup ordering, doi.org non-standard keys).
     if review_key in articles:
         return review_key
     doi = bib_dois.get(review_key, "")
@@ -114,59 +78,63 @@ def normalize_number(value: str) -> str:
 def number_matches(review_num: str, claim_value: str) -> bool:
     norm_review = normalize_number(review_num)
     norm_claim = normalize_number(claim_value)
-
-    if norm_review in norm_claim:
-        return True
-
-    try:
-        r = float(norm_review.rstrip("%"))
-        for token in re.findall(r"\d+(?:\.\d+)?", norm_claim):
-            if abs(float(token) - r) < 0.05:
-                return True
-    except ValueError:
-        pass
-
-    return False
+    return bool(re.search(rf'(?<!\d)(?<!\.){re.escape(norm_review)}(?!\d)(?!\.\d)', norm_claim))
 
 
 def extract_review_claims(text: str) -> list[dict[str, str]]:
     claims: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
 
-    for m in STAT_NEAR_CITE.finditer(text):
-        stat_value = m.group(1).strip()
-        keys_str = m.group(2)
-        for key in re.findall(r"@?([\w]+(?:_\d{4}[a-z]?))", keys_str):
-            pair = (stat_value, key)
-            if pair not in seen:
-                seen.add(pair)
-                start = max(0, m.start() - 40)
-                end = min(len(text), m.end() + 10)
-                claims.append({
-                    "value": stat_value,
-                    "type": "statistic",
-                    "citation_key": key,
-                    "context": text[start:end].replace("\n", " ").strip(),
-                })
+    for cite_m in _CITE_RE.finditer(text):
+        keys = re.findall(r"@?([\w-]+(?:_\d{4}[a-z]?))", cite_m.group(1))
+        sent_start, sent_end = _split_sentence(text, cite_m.start())
+        sentence = text[sent_start:sent_end]
+        offset = sent_start
 
-    for m in INLINE_NUM_CITE.finditer(text):
-        num_value = m.group(1).strip()
-        pct_check = text[m.start(1):m.end(1) + 2]
-        if "%" in pct_check:
-            num_value += "%"
-        keys_str = m.group(2)
-        for key in re.findall(r"@?([\w]+(?:_\d{4}[a-z]?))", keys_str):
-            pair = (num_value, key)
-            if pair not in seen:
-                seen.add(pair)
-                start = max(0, m.start() - 20)
-                end = min(len(text), m.end() + 10)
-                claims.append({
-                    "value": num_value,
-                    "type": "percentage" if "%" in num_value else "number",
-                    "citation_key": key,
-                    "context": text[start:end].replace("\n", " ").strip(),
-                })
+        stat_spans: list[tuple[int, int]] = []
+        for m in _STAT_PATTERN.finditer(sentence):
+            stat_value = m.group(0).strip()
+            stat_spans.append((m.start(), m.end()))
+            for key in keys:
+                pair = (stat_value, key)
+                if pair not in seen:
+                    seen.add(pair)
+                    ctx_start = max(0, offset + m.start() - 40)
+                    ctx_end = min(len(text), cite_m.end() + 10)
+                    claims.append({
+                        "value": stat_value,
+                        "type": "statistic",
+                        "citation_key": key,
+                        "context": text[ctx_start:ctx_end].replace("\n", " ").strip(),
+                    })
+
+        for m in _NUM_PATTERN.finditer(sentence):
+            num_value = m.group(0).strip()
+            if len(num_value) == 1:
+                continue
+            already_in_stat = any(
+                m.start() >= ss and m.end() <= se
+                for ss, se in stat_spans
+            )
+            if already_in_stat:
+                continue
+            abs_start = offset + m.start()
+            abs_end = offset + m.end()
+            pct_check = text[abs_start:min(abs_end + 2, len(text))]
+            if "%" in pct_check:
+                num_value += "%"
+            for key in keys:
+                pair = (num_value, key)
+                if pair not in seen:
+                    seen.add(pair)
+                    ctx_start = max(0, abs_start - 20)
+                    ctx_end = min(len(text), cite_m.end() + 10)
+                    claims.append({
+                        "value": num_value,
+                        "type": "percentage" if "%" in num_value else "number",
+                        "citation_key": key,
+                        "context": text[ctx_start:ctx_end].replace("\n", " ").strip(),
+                    })
 
     return claims
 
@@ -259,7 +227,7 @@ def main() -> None:
 
     bib_dois: dict[str, str] = {}
     if bib_path:
-        bib_dois = parse_bib_keys_to_doi(bib_path)
+        bib_dois = _parse_bib_keys_to_doi(bib_path)
         print(f"Loaded {len(bib_dois)} DOI mappings from {bib_path}")
 
     with open(args.review, "r", encoding="utf-8") as f:

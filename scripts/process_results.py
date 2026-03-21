@@ -74,7 +74,7 @@ def _format_markdown(results: list[dict], top_n: int = 0) -> str:
     md += "## All Results\n\n"
     md += "| # | Title | First Author | Year | Journal | Citations | DOI |\n"
     md += "|---|-------|--------------|------|---------|-----------|-----|\n"
-    for i, result in enumerate(results, 1):
+    for i, result in enumerate(results):
         title = result.get('title', 'Untitled')
         if len(title) > 80:
             title = title[:77] + "..."

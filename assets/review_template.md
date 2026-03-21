@@ -11,7 +11,7 @@ bibliography: references.bib
 csl: vancouver.csl  # user may substitute any .csl style
 ---
 
-**Review Type**: [Narrative / Systematic / Scoping / Meta-Analysis / Umbrella Review]
+**Review Type**: [Narrative / Systematic / Scoping / Meta-Analysis]
 **PRISMA Compliance**: [Yes/No/Partial - specify which guidelines]
 
 # Abstract {-}

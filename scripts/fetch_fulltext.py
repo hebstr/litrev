@@ -38,7 +38,7 @@ import requests
 sys.path.insert(0, os.path.dirname(__file__))
 from bibtex_keys import parse_bib_keys_to_doi as _parse_bib_keys_to_doi
 from claim_patterns import extract_claims as _extract_claims
-from http_utils import request_with_retry as _request_with_retry
+from http_utils import request_with_retry as _request_with_retry, ncbi_params as _ncbi_params
 
 
 SCIHUB_MIRRORS = [
@@ -63,12 +63,12 @@ _BROWSER_SESSION.headers.update({"User-Agent": "LiteratureReviewSkill/1.0"})
 
 # --- Source 1: PubMed Central (PMC) ---
 
-def doi_to_pmcid(doi: str, email: str = DEFAULT_EMAIL) -> str | None:
+def doi_to_pmcid(doi: str) -> str | None:
     try:
         response = _request_with_retry(
             "GET",
             "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-            params={"db": "pubmed", "term": f"{doi}[doi]", "retmode": "json"},
+            params=_ncbi_params({"db": "pubmed", "term": f"{doi}[doi]", "retmode": "json"}),
             timeout=10,
         )
         data = response.json()
@@ -78,15 +78,13 @@ def doi_to_pmcid(doi: str, email: str = DEFAULT_EMAIL) -> str | None:
 
         response = _request_with_retry(
             "GET", ELINK_URL,
-            params={
+            params=_ncbi_params({
                 "dbfrom": "pubmed",
                 "db": "pmc",
                 "id": pmids[0],
                 "linkname": "pubmed_pmc",
                 "retmode": "json",
-                "tool": "LiteratureReviewSkill",
-                "email": email,
-            },
+            }),
             timeout=10,
         )
         link_data = response.json()
@@ -103,18 +101,16 @@ def doi_to_pmcid(doi: str, email: str = DEFAULT_EMAIL) -> str | None:
     return None
 
 
-def fetch_pmc_text(pmcid: str, email: str = DEFAULT_EMAIL) -> str | None:
+def fetch_pmc_text(pmcid: str) -> str | None:
     try:
         response = _request_with_retry(
             "GET", EFETCH_URL,
-            params={
+            params=_ncbi_params({
                 "db": "pmc",
                 "id": pmcid,
                 "rettype": "xml",
                 "retmode": "xml",
-                "tool": "LiteratureReviewSkill",
-                "email": email,
-            },
+            }),
             timeout=30,
         )
         response.raise_for_status()
@@ -131,11 +127,11 @@ def fetch_pmc_text(pmcid: str, email: str = DEFAULT_EMAIL) -> str | None:
         return None
 
 
-def try_pmc(doi: str, email: str = DEFAULT_EMAIL) -> tuple[str | None, str]:
-    pmcid = doi_to_pmcid(doi, email=email)
+def try_pmc(doi: str) -> tuple[str | None, str]:
+    pmcid = doi_to_pmcid(doi)
     if not pmcid:
         return None, "no PMC link"
-    text = fetch_pmc_text(pmcid, email=email)
+    text = fetch_pmc_text(pmcid)
     if text and len(text) > 500:
         return text, f"PMC:{pmcid}"
     return None, "PMC text too short or empty"
@@ -281,7 +277,7 @@ def fetch_article_text(
     scihub_mirror: str | None,
     email: str = DEFAULT_EMAIL,
 ) -> tuple[str, str]:
-    text, source = try_pmc(doi, email=email)
+    text, source = try_pmc(doi)
     if text:
         return text, "pmc"
 

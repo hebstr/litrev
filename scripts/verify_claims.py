@@ -60,14 +60,19 @@ def resolve_key(
     bib_dois: dict[str, str],
     doi_index: dict[str, str],
 ) -> str | None:
-    # extract_data.py and generate_bib.py generate keys independently.
-    # Direct match handles the common case; DOI fallback bridges when keys
-    # diverge (e.g. collision dedup ordering, doi.org non-standard keys).
     if review_key in articles:
         return review_key
     doi = bib_dois.get(review_key, "")
     if doi and doi in doi_index:
         return doi_index[doi]
+    parts = re.match(r"^(.+?)_(\d{4})([a-z]?)$", review_key)
+    if parts:
+        name_fragment = parts.group(1).lower()
+        year = parts.group(2)
+        for ext_key in articles:
+            ext_match = re.match(r"^(.+?)_(\d{4})([a-z]?)$", ext_key)
+            if ext_match and ext_match.group(2) == year and ext_match.group(1).lower().startswith(name_fragment):
+                return ext_key
     return None
 
 
@@ -81,6 +86,10 @@ def number_matches(review_num: str, claim_value: str) -> bool:
     return bool(re.search(rf'(?<!\d)(?<!\.){re.escape(norm_review)}(?!\d)(?!\.\d)', norm_claim))
 
 
+def _mask_citations(sentence: str) -> str:
+    return _CITE_RE.sub(lambda m: " " * len(m.group(0)), sentence)
+
+
 def extract_review_claims(text: str) -> list[dict[str, str]]:
     claims: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -89,10 +98,11 @@ def extract_review_claims(text: str) -> list[dict[str, str]]:
         keys = re.findall(r"@?([\w-]+(?:_\d{4}[a-z]?))", cite_m.group(1))
         sent_start, sent_end = _split_sentence(text, cite_m.start())
         sentence = text[sent_start:sent_end]
+        masked = _mask_citations(sentence)
         offset = sent_start
 
         stat_spans: list[tuple[int, int]] = []
-        for m in _STAT_PATTERN.finditer(sentence):
+        for m in _STAT_PATTERN.finditer(masked):
             stat_value = m.group(0).strip()
             stat_spans.append((m.start(), m.end()))
             for key in keys:
@@ -108,7 +118,7 @@ def extract_review_claims(text: str) -> list[dict[str, str]]:
                         "context": text[ctx_start:ctx_end].replace("\n", " ").strip(),
                     })
 
-        for m in _NUM_PATTERN.finditer(sentence):
+        for m in _NUM_PATTERN.finditer(masked):
             num_value = m.group(0).strip()
             if len(num_value) == 1:
                 continue

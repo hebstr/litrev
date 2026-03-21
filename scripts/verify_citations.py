@@ -16,7 +16,7 @@ import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
 from bibtex_keys import strip_code_blocks as _strip_code_blocks, extract_doi_matches as _extract_doi_matches
-from http_utils import request_with_retry as _request_with_retry
+from http_utils import request_with_retry as _request_with_retry, ncbi_params as _ncbi_params
 
 class CitationVerifier:
     def __init__(self, timeout=10, max_retries=3):
@@ -42,7 +42,6 @@ class CitationVerifier:
             response = self._http("GET", url)
 
             if response.status_code == 200:
-                time.sleep(0.35)
                 metadata = self._get_crossref_metadata(doi)
                 return True, metadata
             else:
@@ -116,7 +115,7 @@ class CitationVerifier:
             url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
             response = self._http(
                 "GET", url,
-                params={"db": "pubmed", "id": pmid, "retmode": "json"}
+                params=_ncbi_params({"db": "pubmed", "id": pmid, "retmode": "json"})
             )
 
             if response.status_code == 200:
@@ -155,7 +154,7 @@ class CitationVerifier:
             url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
             response = self._http(
                 "GET", url,
-                params={"db": "pubmed", "term": f"{doi}[doi]", "retmode": "json"}
+                params=_ncbi_params({"db": "pubmed", "term": f"{doi}[doi]", "retmode": "json"})
             )
             if response.status_code == 200:
                 ids = response.json().get("esearchresult", {}).get("idlist", [])
@@ -180,7 +179,7 @@ class CitationVerifier:
             )
             response = self._http(
                 "GET", url,
-                params={"db": "pubmed", "term": term, "retmode": "json"}
+                params=_ncbi_params({"db": "pubmed", "term": term, "retmode": "json"})
             )
 
             if response.status_code == 200:
@@ -233,7 +232,6 @@ class CitationVerifier:
                     pmid = self._pmid_from_doi(doi)
                     if pmid:
                         seen_pmids.add(pmid)
-                        time.sleep(0.3)
                         print(f"Checking retraction status: DOI {doi} (PMID {pmid})")
                         if self.check_retraction(pmid):
                             report['retracted'].append(doi)
@@ -243,8 +241,6 @@ class CitationVerifier:
                         print(f"  Retraction check skipped (no PMID found): {doi}")
             else:
                 report['failed'].append(doi)
-
-            time.sleep(0.5)
 
         for pmid in pmids:
             if pmid in seen_pmids:
@@ -258,15 +254,12 @@ class CitationVerifier:
                 report['metadata'][f"PMID:{pmid}"] = metadata
 
                 if check_retractions:
-                    time.sleep(0.3)
                     print(f"Checking retraction status: PMID {pmid}")
                     if self.check_retraction(pmid):
                         report['retracted'].append(f"PMID:{pmid}")
                         print(f"  WARNING: PMID {pmid} has been RETRACTED")
             else:
                 report['failed'].append(f"PMID:{pmid}")
-
-            time.sleep(0.5)
 
         return report
 

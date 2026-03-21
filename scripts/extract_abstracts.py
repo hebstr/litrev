@@ -15,7 +15,7 @@ def extract_by_dois(results, dois):
 
 
 def extract_by_rows(results, rows):
-    return [results[i - 1] for i in rows if 1 <= i <= len(results)]
+    return [results[i] for i in rows if 0 <= i < len(results)]
 
 
 def format_output(articles):
@@ -42,7 +42,7 @@ def main():
     parser.add_argument("file", help="Path to combined_results.json")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--dois", nargs='+', help="DOIs to extract")
-    group.add_argument("--rows", nargs='+', type=int, help="Row numbers (1-based) to extract")
+    group.add_argument("--rows", nargs='+', type=int, help="Row numbers (0-based, matching combined_results.json array indices)")
     parser.add_argument("--output", help="Output file (default: stdout)")
     args = parser.parse_args()
 

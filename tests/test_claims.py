@@ -203,7 +203,7 @@ class TestMakeBibtexKey(unittest.TestCase):
 
     def test_van_der_prefix(self):
         article = {"authors": "van der Berg, Jan; Smith, John", "year": 2021}
-        assert make_bibtex_key(article) == "vanderBerg_2021"
+        assert make_bibtex_key(article) == "van_2021"
 
     def test_cjk_author(self):
         article = {"authors": "Wang J; Li X", "year": 2023}

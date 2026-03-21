@@ -9,7 +9,7 @@ import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
 from bibtex_keys import unique_key as _unique_key, strip_code_blocks as _strip_code_blocks, extract_doi_matches as _extract_doi_matches, build_bibtex_entry as _build_bibtex_entry
-from http_utils import request_with_retry as _request_with_retry
+from http_utils import request_with_retry as _request_with_retry, ncbi_params as _ncbi_params
 
 # 3-level resolution chain:
 # doi.org — primary resolver (native BibTeX)
@@ -20,7 +20,7 @@ from http_utils import request_with_retry as _request_with_retry
 def bibtex_from_pubmed(doi, timeout=10):
     r = _request_with_retry("GET",
         "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-        params={"db": "pubmed", "term": f"{doi}[doi]", "retmode": "json"},
+        params=_ncbi_params({"db": "pubmed", "term": f"{doi}[doi]", "retmode": "json"}),
         timeout=timeout
     )
     r.raise_for_status()
@@ -28,10 +28,9 @@ def bibtex_from_pubmed(doi, timeout=10):
     if not ids:
         raise ValueError("DOI not found on PubMed")
     pmid = ids[0]
-    time.sleep(0.35)
     r = _request_with_retry("GET",
         "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
-        params={"db": "pubmed", "id": pmid, "retmode": "json"},
+        params=_ncbi_params({"db": "pubmed", "id": pmid, "retmode": "json"}),
         timeout=timeout
     )
     r.raise_for_status()

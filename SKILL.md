@@ -1,6 +1,6 @@
 ---
 name: literature-review
-description: Conduct systematic reviews, meta-analyses, and evidence syntheses for medical and clinical research. Searches PubMed/MEDLINE, EMBASE, Cochrane CENTRAL, ClinicalTrials.gov, and other medical databases following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations.
+description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical and clinical research. Also triggers for: state-of-the-art summaries, evidence maps, or requests to summarize/synthesize published studies on a medical topic. Searches PubMed/MEDLINE, EMBASE, Cochrane CENTRAL, ClinicalTrials.gov, and other medical databases following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations.
 allowed-tools: Read Write Edit Bash WebFetch WebSearch
 ---
 
@@ -12,15 +12,15 @@ Conduct systematic, comprehensive literature reviews following rigorous medical 
 
 MANDATORY: Copy this tracker into your first message and update it as you complete each phase. Mark each gate as PASSED only after completing ALL requirements. DO NOT proceed past a gate until it is marked PASSED.
 
-If resuming a previous session, check `review/` for existing files and reconstruct tracker state before continuing.
+If resuming a previous session, check `review/` for existing files and reconstruct tracker state before continuing. File → gate mapping: `combined_results.json` → Gate 2 input ready, `search_results.md` → Gate 2 passed, `screening_log.md` → Phase 3 in progress (check for `## Citation Chaining` section to determine if chaining step was completed), `extracted_claims.json` → Gate 4b passed, `<topic>_review.md` → Phase 5 in progress (verify Gate 5 conditions before proceeding), `references.bib` → Gate 6b passed, `claims_audit.json` → Gate 6c passed.
 
 ```
 - [ ] Phase 1 Planning
   - [ ] GATE 1: protocol summary printed (question, framework, scope, criteria, databases, search terms)
 - [ ] Phase 2 Search
   - [ ] GATE 2: process_results.py executed → review/search_results.md exists
-- [ ] Phase 3 Screening
-  - [ ] GATE 3: PRISMA counts printed (initial → deduplicated → title → abstract → included)
+- [ ] Phase 3 Screening, Selection, and Citation Chaining
+  - [ ] GATE 3: PRISMA counts printed (initial → deduplicated → title → abstract → chaining → included)
 - [ ] Phase 4 Extraction
   - [ ] GATE 4a: study summary table + quality ratings printed
   - [ ] GATE 4b: extract_data.py executed → review/extracted_claims.json exists
@@ -67,9 +67,11 @@ Print a protocol summary with: research question, framework (PICO/PEO/SPIDER wit
    Primary: PubMed/MEDLINE (Entrez API), EMBASE (Ovid), Cochrane CENTRAL
    Supplementary: ClinicalTrials.gov, CINAHL, medRxiv, Semantic Scholar, OpenAlex
 
+   If a primary database is inaccessible (e.g., EMBASE without institutional access), substitute a supplementary database to meet the 3-database minimum and document the substitution.
+
 2. **Document search parameters** for each database: date searched, date range, exact search string, result count
 
-3. **Export and aggregate results**: export JSON from each database, combine into `review/combined_results.json` (schema: `references/json_schema.md`)
+3. **Export and aggregate results**: use `WebFetch` to query database APIs (PubMed, Semantic Scholar, OpenAlex, ClinicalTrials.gov, medRxiv have public APIs; EMBASE, Scopus, Web of Science, CINAHL require institutional portal access — see Institutional Access), export JSON results, and combine into `review/combined_results.json` (schema: `references/json_schema.md`)
 
 4. **Prioritize high-impact papers** throughout: read `references/paper_prioritization.md` for citation thresholds and journal tiers
 
@@ -87,26 +89,48 @@ uv run python "$SKILL_DIR/scripts/process_results.py" review/combined_results.js
   --summary
 ```
 
-Options: `--rank citations|year|relevance`, `--year-start`/`--year-end`, `--study-type rct,cohort,...`, `--top N` (detail top N most-cited, default 20), `--format json|markdown|bibtex|ris`.
+Options: `--rank citations|year|relevance`, `--year-start`/`--year-end`, `--study-type rct,cohort,...`, `--top N` (detail top N most-cited in summary section; full table of all results is always included; default 20), `--format json|markdown|bibtex|ris`.
 
 DO NOT proceed to Phase 3 until `review/search_results.md` exists and summary statistics are reviewed.
 
-## Phase 3: Screening and Selection
+## Phase 3: Screening, Selection, and Citation Chaining
 
 1. **Title Screening**: screen titles in `review/search_results.md` table against inclusion/exclusion criteria, exclude irrelevant, document count excluded
 2. **Abstract Screening**: extract abstracts for retained titles only, then apply criteria rigorously, document reasons for exclusion
    ```bash
    uv run python "$SKILL_DIR/scripts/extract_abstracts.py" review/combined_results.json \
-     --rows <space-separated row numbers from title screening>
+     --rows <space-separated 0-based row numbers from title screening>
    ```
-3. **Full-Text Screening**: detailed review against all criteria, document specific exclusion reasons, record final included count
-4. **Create PRISMA Flow Diagram**
 
-After each screening step, append decisions to `review/screening_log.md` (retained row numbers, excluded row numbers with reasons). This file allows resuming screening if the session is interrupted.
+   **Row numbering convention**: all `--rows` arguments across all scripts use **0-based** indices matching the `combined_results.json` array. The `#` column in `search_results.md` uses the same 0-based numbering. The `--top N` option only controls the detailed summary section; the full table always lists all results with their original indices.
+3. **Full-Text Screening**: detailed review against all criteria, document specific exclusion reasons, record final included count
+
+   If zero articles are retained at any screening step, stop and ask the user whether to broaden inclusion criteria, expand databases/search terms, or report the absence of evidence as a finding.
+
+4. **Citation Chaining**: supplement database searches with backward and forward citation chaining to capture studies missed by keyword-based queries. For full details on methods and tools, read `references/database_strategies.md` § Citation Chaining.
+
+   a. **Select seed papers**: pick the 5–10 most relevant included studies from step 3
+
+   b. **Run citation chaining**:
+      ```bash
+      uv run python "$SKILL_DIR/scripts/citation_chaining.py" review/combined_results.json \
+        --rows <space-separated 0-based row numbers of seed papers> \
+        --direction both \
+        --merge
+      ```
+      Options: `--direction backward|forward|both` (default: both), `--sources s2,openalex` (default: both), `--merge` merges new candidates into `combined_results.json` (recommended). Without `--merge`, candidates are saved to `review/chaining_candidates.json` only.
+
+   c. **Screen new candidates**: apply the same inclusion/exclusion criteria to newly found papers. If `--merge` was used, re-run `process_results.py` (Gate 2 command) to update `review/search_results.md`, then screen the new entries.
+
+   d. **Document**: append a `## Citation Chaining` section to `review/screening_log.md` with: seed papers used (row numbers), number of backward/forward candidates found, number retained after screening, exclusion reasons. Zero new inclusions is a valid outcome — state it explicitly.
+
+5. **Create PRISMA Flow Diagram** (include citation chaining as a separate identification source)
+
+After each screening step, append decisions to `review/screening_log.md`. Use the format: `## Title Screening` (or `Abstract` / `Full-text` / `Citation Chaining`), then `Retained: 0 3 5 12` and `Excluded: 1 (wrong population), 2 (no outcome), ...`. This file allows resuming screening if the session is interrupted.
 
 ### ═══ GATE 3 — MANDATORY BEFORE PHASE 4 ═══
 
-Print PRISMA counts (no placeholders): identified → deduplicated → title-screened → abstract-screened → full-text assessed → included. Include exclusion reasons with counts at abstract and full-text stages. All numbers must be filled before proceeding.
+Print PRISMA counts (no placeholders): identified → deduplicated → title-screened → abstract-screened → full-text assessed → included from databases + included from citation chaining → total included. Include exclusion reasons with counts at abstract, full-text, and chaining stages. All numbers must be filled before proceeding.
 
 ## Phase 4: Data Extraction and Quality Assessment
 
@@ -129,12 +153,12 @@ Extract all numerical claims from included article abstracts into a structured J
 
 ```bash
 uv run python "$SKILL_DIR/scripts/extract_data.py" review/combined_results.json \
-  --rows <space-separated row numbers of included articles> \
+  --rows <space-separated 0-based row numbers of included articles> \
   --fetch-abstracts \
   --output review/extracted_claims.json
 ```
 
-Options: `--rows` or `--dois` to select articles, `--fetch-abstracts` to retrieve missing abstracts from PubMed via PMID (recommended).
+Options: `--rows` (0-based indices) or `--dois` to select articles, `--fetch-abstracts` to retrieve missing abstracts from PubMed via PMID (recommended).
 
 Review the output statistics. If many articles lack abstracts, note this — those articles' numbers will require manual full-text verification later.
 
@@ -157,6 +181,8 @@ DO NOT proceed to Phase 5 until `review/extracted_claims.json` exists.
 
 4. **Write Discussion**: interpret findings in context, discuss implications, acknowledge review limitations, propose future research directions
 
+5. **Add BibTeX block**: include a `bibtex` fenced code block at the end of the document with all cited references (format: `references/bibtex_format.md`). This block is read by `generate_bib.py` at Gate 6b to produce the authoritative `references.bib`.
+
 For best practices and pitfalls to avoid, read `references/best_practices.md`.
 
 ### ═══ GATE 5 — MANDATORY BEFORE PHASE 6 ═══
@@ -171,12 +197,12 @@ Verify `review/<topic>_review.md` is complete: YAML header, Introduction, Method
 
 ```bash
 uv run python "$SKILL_DIR/scripts/verify_citations.py" review/<topic>_review.md \
-  --timeout 15 --no-retractions
+  --timeout 15
 ```
 
-Options: `--timeout SECONDS` (default: 10), `--no-retractions` (skip retraction checks), `--output FILE` (JSON report path).
+Options: `--timeout SECONDS` (default: 10), `--no-retractions` (skip retraction checks — faster but not recommended for systematic reviews), `--output FILE` (JSON report path).
 
-Review the generated `review/<topic>_review_citation_report.json`. Fix any failed DOIs and re-run until all pass.
+Review the generated `review/<topic>_review_citation_report.json`. For each failed DOI: search for the correct DOI via CrossRef or PubMed. If no DOI exists (e.g., preprint, old publication), remove the `doi` field from the BibTeX entry but keep the citation. Re-run until all resolvable DOIs pass. If a DOI still fails after 2 correction attempts, treat it as unresolvable: remove the `doi` field and keep the citation.
 
 ### ═══ GATE 6b — GENERATE BIBLIOGRAPHY ═══
 
@@ -201,7 +227,7 @@ uv run python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
   --output review/claims_audit.json
 ```
 
-**Step 2 — Enrich with full-text**: if many claims are UNVERIFIED, fetch full-text articles (PMC → Unpaywall → Sci-Hub) to extract additional claims:
+**Step 2 — Enrich with full-text**: if many claims are UNVERIFIED, fetch full-text for those articles only (access cascade: PMC → Unpaywall → Publisher → Sci-Hub) and extract additional claims:
 
 ```bash
 uv run python "$SKILL_DIR/scripts/fetch_fulltext.py" review/claims_audit.json \
@@ -222,13 +248,13 @@ uv run python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
 
 Review the audit report. For each status:
 - **VERIFIED**: number confirmed in the article's abstract — no action needed
-- **UNVERIFIED**: number NOT found in the abstract — either correct from full-text (add `<!-- VERIFIED: full-text -->` comment) or hallucinated (fix immediately)
+- **UNVERIFIED**: number NOT found in the abstract — either correct from full-text (replace the `<!-- UNVERIFIED: ... -->` comment with `<!-- VERIFIED: full-text -->`) or hallucinated (fix immediately)
 - **NO_ABSTRACT**: article had no abstract — manual check required against full-text
 - **NO_EXTRACTION**: article missing from extraction — re-run extract_data.py with correct rows
 
-Fix all hallucinated claims before proceeding. Print the summary counts.
+A claim is hallucinated if the number does not appear in the source article at all, or is attributed to the wrong article. Fix all hallucinated claims (correct the number, fix the attribution, or remove the claim) before proceeding. Print the summary counts.
 
-**Maintain a `bibtex` code block** at the end of the `.md` listing all cited references (see `references/bibtex_format.md`). Keys follow `FirstAuthorLastName_Year` pattern (deduplicated with suffix a, b, c).
+**Maintain a `bibtex` code block** at the end of the `.md` listing all cited references (see `references/bibtex_format.md`). This block is a cross-verification artifact read by `generate_bib.py` — the authoritative bibliography is the external `references.bib` generated at Gate 6b. Keys follow `FirstAuthorLastName_Year` pattern (deduplicated with suffix a, b, c).
 
 ## Phase 7: Final Quality Check
 
@@ -259,12 +285,13 @@ Print each item below and mark PASS or FAIL. If any item is FAIL, go back and fi
 - `review/<topic>_review_citation_report.json` — citation verification report
 - `review/claims_audit.json` — cross-verification audit report (claims vs abstracts)
 - `review/screening_log.md` — screening decisions (for session resumption)
+- `review/chaining_candidates.json` — citation chaining candidates (only if `--merge` not used)
 
 ## Review Type Adaptations
 
 - **Systematic Review**: Use all phases and gates
-- **Meta-Analysis**: Include Synthesis and Analysis section, Appendix F
-- **Narrative Review**: May simplify methodology detail, all gates still apply
+- **Meta-Analysis**: Use all phases and gates. Include meta-analysis details in Appendix F (template provided in `assets/review_template.md`: statistical software, model choice, code, sensitivity analyses)
+- **Narrative Review**: All gates apply, but Gate 3 PRISMA counts may use simplified flow (no formal diagram), and Gate 4a quality assessment may use a lighter tool or omit GRADE
 - **Scoping Review**: Follow PRISMA-ScR, may omit quality assessment
 
 ## Reference Files

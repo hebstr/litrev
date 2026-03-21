@@ -10,8 +10,9 @@
 - `scripts/extract_data.py`: Extract quantitative claims from article abstracts into structured JSON (single source of truth for numbers)
 - `scripts/verify_claims.py`: Cross-verify numerical claims in a review against extracted data, produce audit report
 - `scripts/fetch_fulltext.py`: Fetch full-text articles (PMC → Unpaywall → Publisher → Sci-Hub) and enrich extracted claims
+- `scripts/citation_chaining.py`: Backward/forward citation chaining via Semantic Scholar and OpenAlex APIs, with deduplication and merge
 - `scripts/bibtex_keys.py`: Shared BibTeX key collision handling (used internally)
-- `scripts/http_utils.py`: Shared HTTP retry logic (used internally by `verify_citations.py`, `generate_bib.py`)
+- `scripts/http_utils.py`: Shared HTTP retry logic (used internally by `verify_citations.py`, `generate_bib.py`, `citation_chaining.py`)
 
 **References:**
 - `references/bibtex_format.md`: BibTeX entry types, field conventions, formatting guide

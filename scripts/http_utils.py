@@ -1,17 +1,58 @@
 """Shared HTTP utilities for literature review scripts."""
 
+import os
 import sys
 import time
 
 import requests
 
+NCBI_EMAIL = os.environ.get("NCBI_EMAIL", "literature-review-skill@example.com")
+NCBI_TOOL = "LiteratureReviewSkill"
+NCBI_API_KEY = os.environ.get("NCBI_API_KEY", "")
+
 _SESSION = requests.Session()
 _SESSION.headers.update({"User-Agent": "LiteratureReviewSkill/1.0"})
+
+_CROSSREF_SESSION = requests.Session()
+_CROSSREF_SESSION.headers.update({
+    "User-Agent": f"LiteratureReviewSkill/1.0 (mailto:{NCBI_EMAIL})",
+})
+
+_last_ncbi_call = 0.0
+_NCBI_MIN_INTERVAL = 0.1 if NCBI_API_KEY else 0.34
+
+
+def _ncbi_throttle():
+    global _last_ncbi_call
+    now = time.monotonic()
+    elapsed = now - _last_ncbi_call
+    if elapsed < _NCBI_MIN_INTERVAL:
+        time.sleep(_NCBI_MIN_INTERVAL - elapsed)
+    _last_ncbi_call = time.monotonic()
+
+
+def ncbi_params(extra: dict | None = None) -> dict:
+    params = {"tool": NCBI_TOOL, "email": NCBI_EMAIL}
+    if NCBI_API_KEY:
+        params["api_key"] = NCBI_API_KEY
+    if extra:
+        params.update(extra)
+    return params
 
 
 def request_with_retry(method, url, max_retries=3, session=None, **kwargs):
     kwargs.setdefault("timeout", 10)
-    s = session or _SESSION
+
+    is_ncbi = "ncbi.nlm.nih.gov" in url
+    is_crossref = "crossref.org" in url
+
+    if is_ncbi:
+        _ncbi_throttle()
+    if is_crossref:
+        s = session or _CROSSREF_SESSION
+    else:
+        s = session or _SESSION
+
     response = None
     for attempt in range(max_retries):
         try:
@@ -28,6 +69,8 @@ def request_with_retry(method, url, max_retries=3, session=None, **kwargs):
             label = "Rate limited (429)" if response.status_code == 429 else f"Server error ({response.status_code})"
             print(f"  {label}, retrying in {wait}s...", file=sys.stderr)
             time.sleep(wait)
+            if is_ncbi:
+                _ncbi_throttle()
             continue
         return response
     if response is None:

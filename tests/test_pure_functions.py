@@ -308,18 +308,18 @@ class TestExtractByRows(unittest.TestCase):
         ]
 
     def test_single_row(self):
-        extracted = extract_by_rows(self.results, [2])
+        extracted = extract_by_rows(self.results, [1])
         assert len(extracted) == 1
         assert extracted[0]["title"] == "B"
 
     def test_multiple_rows(self):
-        assert len(extract_by_rows(self.results, [1, 3])) == 2
+        assert len(extract_by_rows(self.results, [0, 2])) == 2
 
     def test_out_of_range_ignored(self):
-        assert len(extract_by_rows(self.results, [0, 4, 99])) == 0
+        assert len(extract_by_rows(self.results, [3, 99])) == 0
 
-    def test_row_one_based(self):
-        assert extract_by_rows(self.results, [1])[0]["title"] == "A"
+    def test_row_zero_based(self):
+        assert extract_by_rows(self.results, [0])[0]["title"] == "A"
 
 
 class TestFormatAbstractOutput(unittest.TestCase):

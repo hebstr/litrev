@@ -8,7 +8,7 @@ source of truth for numbers that may be cited in the review.
 
 Usage:
     python extract_data.py review/combined_results.json \
-        --rows 3 17 33 62 \
+        --rows 0 2 12 33 \
         --output review/extracted_claims.json
 """
 
@@ -26,7 +26,7 @@ import requests
 sys.path.insert(0, os.path.dirname(__file__))
 from claim_patterns import extract_claims
 from bibtex_keys import unique_key as _unique_key
-from http_utils import request_with_retry as _request_with_retry
+from http_utils import request_with_retry as _request_with_retry, ncbi_params as _ncbi_params
 
 
 EFETCH_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -40,12 +40,12 @@ def fetch_abstracts_from_pubmed(pmids: list[str]) -> dict[str, str]:
         try:
             response = _request_with_retry(
                 "GET", EFETCH_URL,
-                params={
+                params=_ncbi_params({
                     "db": "pubmed",
                     "id": ",".join(batch),
                     "rettype": "xml",
                     "retmode": "xml",
-                },
+                }),
                 timeout=30,
             )
             response.raise_for_status()
@@ -79,23 +79,21 @@ def fetch_abstracts_from_pubmed(pmids: list[str]) -> dict[str, str]:
 
 
 def make_bibtex_key(article: dict[str, Any]) -> str:
-    authors = article.get("authors", "")
-    last_name = ""
-    if isinstance(authors, list):
-        parts = authors[0].split() if authors else []
-        if parts:
-            last_name = parts[0].rstrip(",")
-    elif authors:
-        first_entry = authors.split(";")[0].strip()
-        if "," in first_entry:
-            last_name = first_entry.split(",")[0].strip()
-        else:
+    last_name = article.get("first_author", "")
+    if not last_name:
+        authors = article.get("authors", "")
+        if isinstance(authors, list):
+            parts = authors[0].split() if authors else []
+            if parts:
+                last_name = parts[0].rstrip(",")
+        elif authors:
+            first_entry = authors.split(";")[0].split(",")[0].strip()
             parts = first_entry.split()
             if parts:
                 last_name = parts[0]
     if not last_name:
-        last_name = article.get("first_author", "Unknown")
-    last_name = last_name.replace(" ", "")  # "van der Berg" → "vanderBerg" (BibTeX keys cannot contain spaces)
+        last_name = "Unknown"
+    last_name = last_name.replace(" ", "")
     year = str(article.get("year", "0000"))
     return f"{last_name}_{year}"
 
@@ -123,7 +121,7 @@ def process_articles(
     fetch_missing: bool = False,
 ) -> dict[str, Any]:
     if rows:
-        selected = [results[i - 1] for i in rows if 1 <= i <= len(results)]
+        selected = [results[i] for i in rows if 0 <= i < len(results)]
     elif dois:
         dois_lower = {d.lower().strip() for d in dois}
         selected = [r for r in results if r.get("doi", "").lower().strip() in dois_lower]
@@ -181,7 +179,7 @@ def main() -> None:
     )
     parser.add_argument("file", help="Path to combined_results.json")
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--rows", nargs="+", type=int, help="Row numbers (1-based)")
+    group.add_argument("--rows", nargs="+", type=int, help="Row numbers (0-based, matching combined_results.json array indices)")
     group.add_argument("--dois", nargs="+", help="DOIs to extract")
     group.add_argument(
         "--from-bib",

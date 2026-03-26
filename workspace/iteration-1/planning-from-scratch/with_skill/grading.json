@@ -1,0 +1,85 @@
+{
+  "expectations": [
+    {
+      "text": "The orchestrator uses PICO/PICOS framework (this is an intervention question)",
+      "passed": true,
+      "evidence": "Both transcript and protocol.md explicitly state 'Framework: PICO' with a structured PICO table. The transcript identifies the question as an intervention question: 'is about an intervention (probiotics) and its treatment effect (preventing recurrence). The appropriate framework is PICO.'"
+    },
+    {
+      "text": "The protocol includes Population (patients with recurrent C. difficile infection), Intervention (probiotics), Comparison (placebo/standard care), and Outcome",
+      "passed": true,
+      "evidence": "protocol.md PICO table: P = 'Adults (>= 18 years) with a history of at least one Clostridioides difficile infection', I = 'Probiotics (any strain, formulation, dose, duration)', C = 'Placebo, no probiotic, or standard of care alone', O = 'Recurrence of CDI (primary); time to recurrence, adverse events, all-cause mortality (secondary)'. All four components present with appropriate specificity."
+    },
+    {
+      "text": "The review type is correctly identified as systematic review",
+      "passed": true,
+      "evidence": "protocol.md line 19: 'Systematic review'. Also in transcript scope table: 'Review type | Systematic review'."
+    },
+    {
+      "text": "At least 3 databases are listed in the search strategy",
+      "passed": true,
+      "evidence": "protocol.md lists 4 databases: (1) PubMed / MEDLINE, (2) EMBASE, (3) Cochrane CENTRAL, (4) ClinicalTrials.gov."
+    },
+    {
+      "text": "Search concepts include synonyms/MeSH terms for probiotics AND C. difficile",
+      "passed": true,
+      "evidence": "protocol.md search terms table includes C. difficile synonyms ('Clostridioides difficile', 'Clostridium difficile', 'C. difficile', 'CDI', 'C. diff', 'CDAD') and probiotic synonyms ('probiotics', 'Lactobacillus', 'Saccharomyces boulardii', 'Bifidobacterium', 'Lactiplantibacillus', 'live biotherapeutic', 'synbiotic'). Boolean structure combines them with AND."
+    },
+    {
+      "text": "Inclusion and exclusion criteria are explicitly stated",
+      "passed": true,
+      "evidence": "protocol.md contains dedicated 'Inclusion Criteria' section (8 bullet points) and 'Exclusion Criteria' section (6 bullet points), both with specific, actionable criteria."
+    },
+    {
+      "text": "The protocol is persisted to review/protocol.md via the Write tool",
+      "passed": true,
+      "evidence": "The file outputs/protocol.md exists with 72 lines of substantive protocol content. Transcript states 'protocol persisted to review/protocol.md' and the file is present in the outputs directory."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "output_chars": 8177,
+    "transcript_chars": 5320
+  },
+  "timing": {
+    "total_duration_seconds": 108.1
+  },
+  "claims": [
+    {
+      "claim": "GATE 1 passed with all fields filled",
+      "type": "quality",
+      "verified": true,
+      "evidence": "The GATE 1 summary table in the transcript contains all required fields (Research Question, Framework, P, I, C, O, Review Type, Time Period, Databases, Search Concepts, Inclusion, Exclusion) and each has substantive content. Confirmed by reading protocol.md."
+    },
+    {
+      "claim": "4 databases meet the >= 3 requirement for systematic reviews",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Counted 4 databases in protocol.md: PubMed/MEDLINE, EMBASE, Cochrane CENTRAL, ClinicalTrials.gov."
+    },
+    {
+      "claim": "4 core search concepts are defined",
+      "type": "factual",
+      "verified": true,
+      "evidence": "protocol.md Core Concepts table has 4 rows: Clostridioides difficile, Recurrence, Probiotics, Prevention."
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "The protocol is persisted to review/protocol.md via the Write tool",
+        "reason": "This assertion checks file existence but not that the Write tool was specifically used. The transcript doesn't show tool call traces — only the narrative. A stricter test would verify the tool invocation in the transcript, or this could be reworded to just check file existence and content."
+      },
+      {
+        "reason": "No assertion checks whether the search terms include actual MeSH headings (e.g., 'Clostridioides difficile [MeSH]') versus free-text synonyms. The current output uses free-text synonyms only — which is reasonable but a real systematic review protocol would typically include explicit MeSH terms for MEDLINE. This is a domain quality gap no assertion catches."
+      }
+    ],
+    "overall": "Assertions cover the key structural elements of a protocol well. The main gap is that they test presence but not domain quality (e.g., MeSH vs free-text, PRISMA compliance). For a skill evaluation this level is reasonable."
+  }
+}

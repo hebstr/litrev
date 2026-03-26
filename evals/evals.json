@@ -1,0 +1,57 @@
+{
+  "skill_name": "litrev",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Je reprends ma review sur les inhibiteurs SGLT2 dans l'insuffisance cardiaque. Le dossier review/ contient déjà les résultats de recherche et le screening.",
+      "expected_output": "The orchestrator reconstructs the execution tracker from existing review/ files, identifies that Gates 1-3a are passed, and resumes at the correct next phase (snowballing or extraction). It reads protocol.md to restore the research context.",
+      "files": [
+        "evals/fixtures/session-resume/protocol.md",
+        "evals/fixtures/session-resume/combined_results.json",
+        "evals/fixtures/session-resume/search_results.md",
+        "evals/fixtures/session-resume/search_log.md",
+        "evals/fixtures/session-resume/screening_log.md",
+        "evals/fixtures/session-resume/included_indices.json"
+      ],
+      "expectations": [
+        "The orchestrator prints an execution tracker with Gates 1, 2, and 3a marked as passed/completed",
+        "The orchestrator reads review/protocol.md and restores the research question about SGLT2 inhibitors in heart failure",
+        "The orchestrator identifies that the next phase is snowballing (Phase 3b) or extraction (Phase 4)",
+        "The orchestrator tells the user which phases are already done before proceeding",
+        "The orchestrator uses the PICO framework components from the protocol (Population: adults with HF, Intervention: SGLT2 inhibitors, etc.)",
+        "The orchestrator does NOT re-ask the user for the research question or inclusion criteria",
+        "The thin evidence warning is triggered (8 articles included, which is >= 5 so no warning expected) OR correctly not triggered"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Revue systématique sur l'efficacité des probiotiques dans la prévention des infections récurrentes à Clostridioides difficile.",
+      "expected_output": "The orchestrator runs Phase 1 planning: defines a PICO framework, selects systematic review type, develops search strategy with >= 3 databases, sets inclusion/exclusion criteria, prints a complete protocol summary, and persists it to review/protocol.md.",
+      "files": [],
+      "expectations": [
+        "The orchestrator uses PICO/PICOS framework (this is an intervention question)",
+        "The protocol includes Population (patients with recurrent C. difficile infection), Intervention (probiotics), Comparison (placebo/standard care), and Outcome",
+        "The review type is correctly identified as systematic review",
+        "At least 3 databases are listed in the search strategy",
+        "Search concepts include synonyms/MeSH terms for probiotics AND C. difficile",
+        "Inclusion and exclusion criteria are explicitly stated",
+        "The protocol is persisted to review/protocol.md via the Write tool"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Je voudrais faire une revue de littérature sur l'impact du microbiome intestinal sur la réponse aux immunothérapies dans le cancer du poumon.",
+      "expected_output": "The orchestrator detects that review/ contains a protocol.md about rotator cuff comorbidities (different topic), flags the mismatch, and asks the user whether to start fresh or use a different directory.",
+      "files": [
+        "evals/fixtures/topic-mismatch/protocol.md"
+      ],
+      "expectations": [
+        "The orchestrator detects existing review/ files (specifically protocol.md)",
+        "The orchestrator identifies that the existing protocol is about rotator cuff/comorbidities, not microbiome/immunotherapy/lung cancer",
+        "The orchestrator explicitly flags the topic mismatch to the user",
+        "The orchestrator asks the user whether to start fresh or use a different directory",
+        "The orchestrator does NOT silently overwrite or ignore the existing protocol"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "expectations": [
+    {
+      "text": "The orchestrator prints an execution tracker with Gates 1, 2, and 3a marked as passed/completed",
+      "passed": true,
+      "evidence": "Transcript shows 'Reconstructed Execution Tracker' with '[x] Phase 1 Planning', '[x] Phase 2 Search', '[x] Phase 3a Screening' all checked. Gate verification section also shows 'Gate 1 (Planning): PASSED', 'Gate 2 (Search): PASSED', 'Gate 3a (Screening): PASSED'."
+    },
+    {
+      "text": "The orchestrator reads review/protocol.md and restores the research question about SGLT2 inhibitors in heart failure",
+      "passed": true,
+      "evidence": "Transcript section 'Protocol restored from review/protocol.md' shows: 'Research question: What is the efficacy and safety of SGLT2 inhibitors in reducing mortality and hospitalization in patients with heart failure?'"
+    },
+    {
+      "text": "The orchestrator identifies that the next phase is snowballing (Phase 3b) or extraction (Phase 4)",
+      "passed": true,
+      "evidence": "Transcript states: 'Next step: Phase 3b -- Snowballing. Since this is a systematic review, citation snowballing (backward + forward chaining) is recommended.'"
+    },
+    {
+      "text": "The orchestrator tells the user which phases are already done before proceeding",
+      "passed": true,
+      "evidence": "Resume plan section states: 'Phases 1 (Planning), 2 (Search), and 3a (Screening) are complete. 8 articles are included.' Also lists all remaining phases (3b through 7)."
+    },
+    {
+      "text": "The orchestrator uses the PICO framework components from the protocol (Population: adults with HF, Intervention: SGLT2 inhibitors, etc.)",
+      "passed": true,
+      "evidence": "Transcript shows full PICO breakdown: 'Population: Adults (>=18 years) with heart failure (HFrEF and HFpEF)', 'Intervention: SGLT2 inhibitors (dapagliflozin, empagliflozin, canagliflozin, sotagliflozin)', 'Comparison: Placebo or standard of care', 'Outcome: All-cause mortality, cardiovascular mortality, heart failure hospitalization, quality of life (KCCQ)'."
+    },
+    {
+      "text": "The orchestrator does NOT re-ask the user for the research question or inclusion criteria",
+      "passed": true,
+      "evidence": "The transcript shows the orchestrator restoring all protocol information from existing files. There are no user prompts or questions asking the user to re-provide the research question or criteria. The flow goes directly from detection to gate verification to resume plan."
+    },
+    {
+      "text": "The thin evidence warning is correctly not triggered (8 articles >= 5 threshold)",
+      "passed": true,
+      "evidence": "Transcript explicitly states: '8 articles included (>= 5 threshold, no thin-evidence warning needed).'"
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "transcript_chars": 5530
+  },
+  "timing": {
+    "total_duration_seconds": 113.5
+  },
+  "claims": [
+    {
+      "claim": "review/protocol.md exists and is 1288 bytes",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Cannot verify from available outputs -- only the transcript is in outputs_dir. The actual review/ directory files are not included."
+    },
+    {
+      "claim": "combined_results.json contains 8 articles",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Cannot verify -- the review/ directory files are not included in outputs_dir."
+    },
+    {
+      "claim": "PRISMA counts are arithmetically consistent (10 -> 8 -> 8 -> 8 -> 8)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "10 identified minus 2 duplicates = 8 unique. 8 title-screened, 8 abstract-screened, 8 included. The counts are consistent as reported."
+    },
+    {
+      "claim": "Gate 3b is not passed because screening_log.md lacks a Citation Snowballing section",
+      "type": "process",
+      "verified": false,
+      "evidence": "Cannot verify directly -- screening_log.md not in outputs_dir. Trusting transcript."
+    },
+    {
+      "claim": "Snowballing is recommended for systematic reviews per the routing table",
+      "type": "process",
+      "verified": false,
+      "evidence": "Cannot verify without access to the skill's routing table definition."
+    }
+  ],
+  "user_notes_summary": null,
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "No assertion checks that the orchestrator actually attempted to continue the pipeline (e.g., invoked litrev-snowball or asked the user to proceed). The transcript only shows state reconstruction and a resume plan, but the orchestrator may have stopped without acting. If the eval is specifically about resumption detection (not execution), the assertions are fine; if it's about end-to-end continuation, an assertion like 'the orchestrator invokes the next sub-agent or prompts the user to confirm continuation' would be valuable."
+      },
+      {
+        "assertion": "The orchestrator does NOT re-ask the user for the research question or inclusion criteria",
+        "reason": "This is a negative assertion that is hard to verify rigorously from a transcript alone -- the transcript could simply omit user interaction. It passes here because the transcript shows a clean detection-to-plan flow with no prompts, but a more robust check would look for the absence of specific question patterns in the orchestrator output."
+      }
+    ],
+    "overall": "Assertions are well-targeted for testing session resumption awareness. The main gap is that all assertions test state detection and reporting, but none test whether the orchestrator actually proceeds to execute the next phase. If the goal is only to test resumption detection, the suite is solid."
+  }
+}

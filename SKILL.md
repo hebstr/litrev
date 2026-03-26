@@ -1,326 +1,280 @@
 ---
-name: literature-review
-description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical, clinical, and health research. Also triggers for medical/health topics: state-of-the-art summaries, evidence maps, or requests to summarize/synthesize published studies — including functional descriptions like "what does the evidence say about [medical topic]", "go through all the studies on [treatment/condition]", "combine the results across trials", "find gaps in the literature on [medical topic]", or "revue de la littérature / revue systématique / méta-analyse / synthèse des preuves / état de l'art". Also triggers for informal variants: "lit review on [medical topic]". Searches PubMed/MEDLINE, EMBASE, Cochrane CENTRAL, ClinicalTrials.gov, and other medical databases following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations. Do NOT trigger for: non-medical systematic reviews or evidence syntheses (software engineering, education, environmental science, etc.), formatting existing manuscripts, writing BibTeX cleanup scripts, drawing PRISMA diagrams in code, or explaining database search methodology.
+name: litrev
+context: fork
+description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical, clinical, and health research. Also triggers for medical/health topics: state-of-the-art summaries, evidence maps, clinical practice guidelines, or requests to summarize/synthesize published studies — including functional descriptions like "what does the evidence say about [medical topic]", "what do we know about [medical topic]", "what does the science say about [medical topic]", "what have studies found on [medical topic]", "summarize the research on [medical topic]", "go through all the studies on [treatment/condition]", "combine the results across trials", "find gaps in the literature on [medical topic]", "pull together the evidence on [medical topic]", "what's been published on [medical topic]", "pooled estimates", "pooled analysis", "pooled data", or "revue de la littérature / revue systématique / méta-analyse / synthèse des preuves / état de l'art / état des connaissances / guide de pratique clinique / passer en revue les études sur / aperçu de ce qui a été publié sur / résumer les études sur". Also triggers for informal variants: "lit review on [medical topic]". Searches PubMed/MEDLINE, EMBASE, Cochrane CENTRAL, ClinicalTrials.gov, and other medical databases following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations. Do NOT trigger for: non-medical domains (software engineering, education, environmental science, social sciences, etc.) even if using review methodology vocabulary, formatting existing manuscripts, writing BibTeX cleanup scripts, drawing PRISMA diagrams in code, explaining database search methodology, explaining PRISMA/Cochrane/GRADE methodology without conducting a review, or brief factual summaries on medical topics when the user explicitly declines a structured review.
 allowed-tools: Read Write Edit Bash WebFetch WebSearch
 ---
 
-# Literature Review
+# Literature Review — Orchestrator
 
-Conduct systematic, comprehensive literature reviews following rigorous medical and clinical research methodology. Search multiple medical databases, synthesize findings thematically, verify all citations, and generate professional output documents.
+## Pre-loaded pipeline state
+
+### Working directory
+!`pwd`
+
+### Review artifacts found
+!`ls -1 review/ 2>/dev/null || echo "(no review/ directory yet)"`
+
+### Protocol (if exists)
+!`head -30 review/protocol.md 2>/dev/null || echo "(no protocol yet)"`
+
+### Git status of review/
+!`git log --oneline -5 -- review/ 2>/dev/null || echo "(no git history for review/)"`
+
+Sequence six sub-skills into a complete literature review pipeline. This skill contains **no domain-execution logic** — it handles planning, sequencing, gates, and error recovery. All domain work is delegated to sub-skills.
+
+## Pipeline
+
+```
+Planning → litrev-search → litrev-screen → litrev-snowball (optional) → litrev-extract → litrev-synthesize → litrev-verify → Final QC
+```
+
+## Sub-skills
+
+| Phase | Skill | Purpose |
+|-------|-------|---------|
+| 2 | `litrev-search` | Multi-database search + aggregation |
+| 3a | `litrev-screen` | Title / abstract / full-text screening |
+| 3b | `litrev-snowball` | Citation chaining (backward + forward) |
+| 4 | `litrev-extract` | Claim extraction + quality assessment |
+| 5 | `litrev-synthesize` | Constrained thematic writing |
+| 6 | `litrev-verify` | Citation verification, BibTeX, claims audit |
+
+Each sub-skill can be invoked independently (standalone mode) or by this orchestrator (orchestrated mode). In orchestrated mode, sub-skills read their inputs from the conversation context and `review/` files — they do not re-ask the user for information already established.
+
+## Invoking Sub-skills
+
+Use the **Skill tool** to invoke each sub-skill by name (e.g., `skill: "litrev-search"`). The sub-skill loads its own SKILL.md and executes within the current conversation — it has access to the full conversation context and the `review/` directory. Do not attempt to read or execute sub-skill instructions directly; let the Skill tool handle loading.
 
 ## Execution Tracker
 
-MANDATORY: Copy this tracker into your first message and update it as you complete each phase. Mark each gate as PASSED only after completing ALL requirements. DO NOT proceed past a gate until it is marked PASSED.
+MANDATORY: Copy this tracker into your first message and update it as you complete each phase. Mark each gate as PASSED only after verifying ALL conditions listed.
 
-If resuming a previous session, check `review/` for existing files and reconstruct tracker state before continuing. File → gate mapping: `combined_results.json` → Gate 2 input ready, `search_results.md` → Gate 2 passed, `screening_log.md` → Phase 3 in progress (check for `## Citation Chaining` section to determine if chaining step was completed), `extracted_claims.json` → Gate 4b passed, `<topic>_review.md` → Phase 5 in progress (verify Gate 5 conditions before proceeding), `references.bib` → Gate 6b passed, `claims_audit.json` → Gate 6c passed.
+If resuming a previous session, check `review/` for existing files and reconstruct tracker state before continuing (see Session Resumption).
 
 ```
 - [ ] Phase 1 Planning
-  - [ ] GATE 1: protocol summary printed (question, framework, scope, criteria, databases, search terms)
-- [ ] Phase 2 Search
-  - [ ] GATE 2: process_results.py executed → review/search_results.md exists
-- [ ] Phase 3 Screening, Selection, and Citation Chaining
-  - [ ] GATE 3: PRISMA counts printed (initial → deduplicated → title → abstract → chaining → included)
-- [ ] Phase 4 Extraction
-  - [ ] GATE 4a: study summary table + quality ratings printed
-  - [ ] GATE 4b: extract_data.py executed → review/extracted_claims.json exists
-- [ ] Phase 5 Synthesis
-  - [ ] GATE 5: review document written → review/<topic>_review.md exists with all sections
-- [ ] Phase 6 Verification
-  - [ ] GATE 6a: verify_citations.py executed → all DOIs pass
-  - [ ] GATE 6b: generate_bib.py executed → review/references.bib exists
-  - [ ] GATE 6c: verify_claims.py executed → review/claims_audit.json exists, UNVERIFIED claims reviewed
+  - [ ] GATE 1: protocol printed (question, framework, scope, criteria, databases, search terms)
+- [ ] Phase 2 Search (litrev-search)
+  - [ ] GATE 2: review/combined_results.json + review/search_results.md + review/search_log.md exist
+- [ ] Phase 3a Screening (litrev-screen)
+  - [ ] GATE 3a: review/screening_log.md + review/included_indices.json exist, PRISMA counts printed
+- [ ] Phase 3b Snowballing (litrev-snowball) — optional per review type
+  - [ ] GATE 3b: Citation Snowballing section in screening_log.md with Status: COMPLETE
+- [ ] Phase 4 Extraction (litrev-extract)
+  - [ ] GATE 4: review/extracted_claims.json exists, summary table + quality ratings printed
+- [ ] Phase 5 Synthesis (litrev-synthesize)
+  - [ ] GATE 5: review/<topic>_review.md exists with all sections, BibTeX block present
+- [ ] Phase 6 Verification (litrev-verify)
+  - [ ] GATE 6: review/references.bib + review/claims_audit.json exist, verification summary printed
 - [ ] Phase 7 Final Quality Check
-  - [ ] GATE 7: quality checklist printed and all items PASS
+  - [ ] GATE 7: quality checklist printed, all items PASS
 ```
 
 ## Setup
 
 ```bash
-SKILL_DIR=~/.claude/skills/literature-review
 mkdir -p review
 ```
 
-All output files go in the `review/` folder at the project root. If `review/` already contains files, ask the user whether to resume an existing review or start fresh. Starting fresh requires explicit user confirmation, then: `rm -rf review && mkdir -p review`.
+All output files go in `review/` under the current working directory. If `review/` already contains files, ask the user whether to resume an existing review or start fresh. When resuming, verify the topic in any existing `*_review.md` matches the current request — if mismatch, ask fresh-or-different-directory. Starting fresh requires explicit user confirmation, then: `rm -rf review && mkdir -p review`.
 
 ## Phase 1: Planning and Scoping
 
-1. **Define Research Question** using the appropriate framework:
-   - **PICO/PICOS** (intervention): Population, Intervention, Comparison, Outcome (+Study design)
-   - **PEO** (etiology/exposure): Population, Exposure, Outcome
-   - **SPIDER** (qualitative/mixed): Sample, Phenomenon of Interest, Design, Evaluation, Research type
+This is the only phase handled directly by the orchestrator (not delegated).
 
-2. **Establish Scope**: review type (systematic, scoping, narrative, meta-analysis), time period, geographic scope, study types
+1. **Define Research Question** using the appropriate framework. Selection rule: use **PICO/PICOS** when the question is about an intervention or treatment effect; use **PEO** when investigating an exposure, risk factor, or etiology without an explicit intervention; use **SPIDER** for qualitative or mixed-methods questions. When a question straddles two frameworks, prefer PEO for etiological questions and PICO only when an explicit intervention is being evaluated.
+   - **PICO/PICOS**: Population, Intervention, Comparison, Outcome (+Study design)
+   - **PEO**: Population, Exposure, Outcome
+   - **SPIDER**: Sample, Phenomenon of Interest, Design, Evaluation, Research type
 
-3. **Develop Search Strategy**: identify 2-4 main concepts, list synonyms/abbreviations, plan Boolean operators (AND, OR, NOT), select minimum 3 databases
+2. **Establish Scope**: review type (systematic, scoping, narrative, meta-analysis, rapid), time period, geographic scope, study types. If the user requests an umbrella review (review of reviews), inform them this type is not yet supported and suggest a systematic review of primary studies instead.
 
-4. **Set Inclusion/Exclusion Criteria**: date range, language, publication types, study designs — document all criteria clearly
+3. **Develop Search Strategy**: 2-4 main concepts, synonyms/abbreviations, Boolean operators, minimum 3 databases (2 for rapid). If the user insists on fewer, warn that the search may be insufficient, document the limitation in the protocol, and proceed if they confirm.
 
-5. **Review type not specified?** If the user does not specify a review type, ask before proceeding. If their response is ambiguous, default to narrative review (lighter gates apply per Review Type Adaptations) and mention that the scope can be escalated to systematic if needed.
+4. **Set Inclusion/Exclusion Criteria**: date range, language, publication types, study designs
 
-### ═══ GATE 1 — MANDATORY BEFORE PHASE 2 ═══
+5. **Review type not specified?** Ask before proceeding. If the user's response does not map to one of the five review types (systematic, scoping, narrative, meta-analysis, rapid), default to narrative review and mention that the scope can be escalated later.
 
-Print a protocol summary with: research question, framework (PICO/PEO/SPIDER with each component filled), review type, time period, databases (≥ 3), search concepts with synonyms, inclusion criteria, exclusion criteria. Every field must be filled — if any is missing or vague, complete Phase 1 before proceeding.
+### === GATE 1 ===
 
-## Phase 2: Systematic Literature Search
+Print a protocol summary with: research question, framework (with each component filled), review type, time period, databases (>= 3, or >= 2 for rapid), search concepts with synonyms, inclusion criteria, exclusion criteria. Every field must be filled before proceeding.
 
-1. **Search minimum 3 databases** appropriate to the domain. For search syntax, read `references/database_strategies.md`.
+**Persist the protocol**: write the protocol summary to `review/protocol.md` so it survives session boundaries. On session resumption, read `review/protocol.md` to restore the research question, framework, review type, criteria, and search strategy.
 
-   Primary: PubMed/MEDLINE (Entrez API), EMBASE (Ovid), Cochrane CENTRAL
-   Supplementary: ClinicalTrials.gov, CINAHL, medRxiv, Semantic Scholar, OpenAlex
+## Phase 2: Search
 
-   If a primary database is inaccessible (e.g., EMBASE without institutional access), substitute a supplementary database to meet the 3-database minimum and document the substitution. If 2+ primary databases are inaccessible, document this as a significant limitation and confirm with the user before proceeding — a search relying mostly on supplementary databases may miss relevant studies.
+Invoke `litrev-search` in orchestrated mode. The protocol from Phase 1 provides all required inputs.
 
-2. **Document search parameters** for each database: date searched, date range, exact search string, result count
+### === GATE 2 ===
 
-3. **Export and aggregate results**: use `WebFetch` to query database APIs (PubMed, Semantic Scholar, OpenAlex, ClinicalTrials.gov, medRxiv have public APIs; EMBASE, Scopus, Web of Science, CINAHL require institutional portal access — see Institutional Access), export JSON results, normalize each entry to the schema in `references/json_schema.md`, and concatenate all arrays into a single `review/combined_results.json`. Set the `source` field to the database of origin for each entry.
+Verify these files exist and are non-empty:
+- `review/combined_results.json` — at least 1 article
+- `review/search_results.md` — contains a results table
+- `review/search_log.md` — documents search attempts
 
-4. **Prioritize high-impact papers** throughout: read `references/paper_prioritization.md` for citation thresholds and journal tiers
+If any is missing, the search phase did not complete — diagnose and re-invoke `litrev-search`.
 
-### ═══ GATE 2 — MANDATORY BEFORE PHASE 3 ═══
+## Phase 3a: Screening
 
-Phase 3 operates on `review/search_results.md`. This file is produced by `process_results.py`. If this file does not exist, Phase 3 CANNOT begin.
+Invoke `litrev-screen` in orchestrated mode. Pass the inclusion/exclusion criteria from Phase 1.
 
-```bash
-uv run python "$SKILL_DIR/scripts/process_results.py" review/combined_results.json \
-  --deduplicate \
-  --format markdown \
-  --output review/search_results.md \
-  --rank citations \
-  --top 20 \
-  --summary
-```
+### === GATE 3a ===
 
-Options: `--rank citations|year|relevance`, `--year-start`/`--year-end`, `--study-type rct,cohort,...`, `--top N` (detail top N most-cited in summary section; full table of all results is always included; default 20), `--format json|markdown|bibtex|ris`.
+Verify:
+- `review/screening_log.md` exists with all applicable steps marked `Status: COMPLETE`
+- `review/included_indices.json` exists and is a valid JSON array
+- PRISMA counts are printed. For systematic/meta-analysis/scoping: identified → deduplicated → title-screened → abstract-screened → included. For narrative/rapid (simplified): identified → deduplicated → screened → included
+- Counts are arithmetically consistent
 
-DO NOT proceed to Phase 3 until `review/search_results.md` exists and summary statistics are reviewed.
+Zero-result detection: check `review/included_indices.json` — if empty array `[]`, screening returned zero articles. Do not proceed to Phase 3b — discuss with the user (broaden criteria, expand search, or report absence of evidence).
 
-## Phase 3: Screening, Selection, and Citation Chaining
+If the user chooses to report absence of evidence: skip Phases 3b, 4, and 6. Invoke `litrev-synthesize` (Phase 5) with the instruction to produce a short review documenting the null result — search strategy, screening outcome, and conclusion that no eligible studies were found. In Phase 7, mark items 1-4, 8, and 9 as N/A (no citations, no bibliography, no claims, no thematic organization needed).
 
-1. **Title Screening**: screen titles in `review/search_results.md` table against inclusion/exclusion criteria, exclude irrelevant, document count excluded. If >200 articles remain after title screening, flag to the user that criteria may be too broad and discuss narrowing before proceeding to abstract screening.
-2. **Abstract Screening**: extract abstracts for retained titles only, then apply criteria rigorously, document reasons for exclusion
-   ```bash
-   uv run python "$SKILL_DIR/scripts/extract_abstracts.py" review/combined_results.json \
-     --rows <space-separated 0-based row numbers from title screening>
-   ```
-   Output prints to stdout (read in-session to screen). Use `--output FILE` to save to a file if needed.
+If fewer than 5 articles are included, warn the user that the evidence base is thin before proceeding.
 
-   **Row numbering convention**: all `--rows` arguments across all scripts use **0-based** indices matching the `combined_results.json` array. The `#` column in `search_results.md` uses the same 0-based numbering. The `--top N` option only controls the detailed summary section; the full table always lists all results with their original indices.
-3. **Full-Text Screening**: detailed review against all criteria, document specific exclusion reasons, record final included count
+## Phase 3b: Snowballing (optional)
 
-   If zero articles are retained at any screening step, stop and ask the user whether to broaden inclusion criteria, expand databases/search terms, or report the absence of evidence as a finding.
+Consult the review type routing table. For systematic and meta-analysis reviews, invoke `litrev-snowball` automatically. For scoping, narrative, and rapid reviews, recommend it to the user and invoke only if they accept. When offering, specify the variant from the routing table (both directions for scoping, backward only for narrative, forward only capped at 5 seeds for rapid).
 
-4. **Citation Chaining**: supplement database searches with backward and forward citation chaining to capture studies missed by keyword-based queries. For background on available tools and APIs, see `references/database_strategies.md` § Citation Chaining. The operational steps are below:
+### === GATE 3b ===
 
-   a. **Select seed papers**: pick the 5–10 most relevant included studies from step 3. If fewer than 5 studies are included, use all of them as seeds
+Verify:
+- `review/screening_log.md` contains a `## Citation Snowballing` section with `Status: COMPLETE`
+- If candidates were merged, `review/included_indices.json` has been updated
 
-   b. **Run citation chaining**:
-      ```bash
-      uv run python "$SKILL_DIR/scripts/citation_chaining.py" review/combined_results.json \
-        --rows <space-separated 0-based row numbers of seed papers> \
-        --direction both \
-        --merge
-      ```
-      Options: `--direction backward|forward|both` (default: both), `--sources s2,openalex` (default: both), `--merge` merges new candidates into `combined_results.json` (recommended). Without `--merge`, candidates are saved to `review/chaining_candidates.json` only.
+If snowballing was skipped, mark GATE 3b as N/A and proceed.
 
-   c. **Screen new candidates**: apply the same inclusion/exclusion criteria to newly found papers. If `--merge` was used, re-run `process_results.py` (Gate 2 command) to update `review/search_results.md`, then screen the new entries. **Warning**: re-running `process_results.py` may shift row indices. Cross-reference previously retained papers by title/DOI (not row number) against the updated table. Use the new indices for all subsequent `--rows` arguments.
+## Phase 4: Extraction
 
-   d. **Document**: append a `## Citation Chaining` section to `review/screening_log.md` with: seed papers used (row numbers), number of backward/forward candidates found, number retained after screening, exclusion reasons. Zero new inclusions is a valid outcome — state it explicitly.
+Invoke `litrev-extract` in orchestrated mode.
 
-5. **Create PRISMA Flow Diagram** as a Mermaid flowchart in the review document (include citation chaining as a separate identification source)
+### === GATE 4 ===
 
-After each screening step, append decisions to `review/screening_log.md`. Use the format: `## Title Screening` (or `Abstract` / `Full-text` / `Citation Chaining`), then `Retained: 0 3 5 12` and `Excluded: 1 (wrong population), 2 (no outcome), ...`, ending with `Status: COMPLETE`. This file allows resuming screening if the session is interrupted — a section without `Status: COMPLETE` indicates the step was not finished and must be redone.
+Verify:
+- `review/extracted_claims.json` exists and is valid JSON with at least 1 article in `articles`
+- Summary table was printed with columns: Author (Year), Design, N, Quality, Key Finding, Theme(s)
+- Quality ratings and theme assignments are present (quality may be null for scoping reviews). See `litrev-extract` for quality assessment details per review type.
 
-### ═══ GATE 3 — MANDATORY BEFORE PHASE 4 ═══
+## Phase 5: Synthesis
 
-Print PRISMA counts (no placeholders): identified → deduplicated → title-screened → abstract-screened → full-text assessed → included from databases + included from citation chaining → total included. Include exclusion reasons with counts at abstract, full-text, and chaining stages. All numbers must be filled before proceeding.
+Invoke `litrev-synthesize` in orchestrated mode.
 
-## Phase 4: Data Extraction and Quality Assessment
+### === GATE 5 ===
 
-1. **Extract Key Data** from each included study: metadata, study design, sample size, population, key findings, limitations, funding/conflicts
+The `<topic>` slug is determined by `litrev-synthesize`. The orchestrator detects existing review files by glob pattern `review/*_review.md`.
 
-2. **Assess Study Quality** (select tool by study design):
-   - **RCTs**: Cochrane RoB 2 | **Non-randomized**: ROBINS-I | **Observational**: Newcastle-Ottawa | **Diagnostic**: QUADAS-2 | **Reviews**: AMSTAR 2
-   - Rate each study using the tool's native scale (RoB 2: Low/Some Concerns/High; ROBINS-I: Low/Moderate/Serious/Critical; Newcastle-Ottawa: 0–9 stars). For the Gate 4a summary table, map to three levels: Low / Moderate / High risk of bias
-   - Apply GRADE to rate certainty of evidence across outcomes (high/moderate/low/very low). Consider the 5 downgrading domains (risk of bias, inconsistency, indirectness, imprecision, publication bias) and 3 upgrading domains (large effect, dose-response, residual confounding). See [GRADE handbook](https://gdt.gradepro.org/app/handbook/handbook.html)
+Verify `review/<topic>_review.md` exists and contains:
+- YAML header declaring `bibliography: references.bib` (the file itself is created in Phase 6 — do not check for its existence here)
+- Introduction, Methodology, Results (organized by themes), Discussion, Conclusions
+- At least one `[@` Pandoc citation
+- A `bibtex` fenced code block with draft reference entries (consumed by `litrev-verify` in Phase 6 to produce the authoritative `references.bib`)
 
-3. **Organize by Themes**: identify 3-5 major themes, group studies by theme, note patterns, consensus, and controversies
+## Phase 6: Verification
 
-### ═══ GATE 4a — MANDATORY BEFORE GATE 4b ═══
+Invoke `litrev-verify` in orchestrated mode.
 
-Print a summary table of ALL included studies with columns: Author (Year), Design, N, Quality Rating (Low/Moderate/High), Key Finding, Theme(s). Then print: quality tool(s) used (one per study design), count per rating level, GRADE certainty per outcome, and list of themes with study counts. Every study must have a quality rating and theme assignment before proceeding.
+### === GATE 6 ===
 
-### ═══ GATE 4b — EXTRACT QUANTITATIVE CLAIMS ═══
-
-Extract all numerical claims from included article abstracts into a structured JSON. This file is the **single source of truth** for numbers that may be cited in the review.
-
-```bash
-uv run python "$SKILL_DIR/scripts/extract_data.py" review/combined_results.json \
-  --rows <space-separated 0-based row numbers of included articles> \
-  --fetch-abstracts \
-  --output review/extracted_claims.json
-```
-
-Options: `--rows` (0-based indices) or `--dois` to select articles, `--fetch-abstracts` to retrieve missing abstracts from PubMed via PMID (recommended).
-
-Review the output statistics. If many articles lack abstracts, note this — those articles' numbers will require manual full-text verification later.
-
-DO NOT proceed to Phase 5 until `review/extracted_claims.json` exists.
-
-## Phase 5: Synthesis and Analysis
-
-1. **Create Review Document**:
-   ```bash
-   cp "$SKILL_DIR/assets/review_template.md" review/<topic>_review.md
-   cp "$SKILL_DIR/assets/vancouver.csl" review/vancouver.csl
-   ```
-   `<topic>` is a short snake_case slug derived from the first main concept in the PICO/PEO/SPIDER framework (e.g., `glp1_cardiovascular`, `probiotics_cdiff`, `ssri_adolescents`). Use the same slug consistently in all subsequent commands. When resuming, detect the existing `*_review.md` filename in `review/` rather than re-deriving the slug.
-
-   The template YAML header is Quarto/Pandoc-compatible and can be rendered to HTML/PDF/DOCX directly.
-
-2. **Write Thematic Synthesis** — organize by themes, NOT study-by-study. Synthesize across studies, compare/contrast, identify consensus and controversies. Use Pandoc citation syntax: `[@Key_Year]`, `[@key1; @key2]`, `[-@Key_Year]`.
-
-   **CRITICAL — Constrained writing**: When citing specific numbers (prevalences, OR, HR, percentages, p-values, sample sizes, rates), you MUST only use values that appear in `review/extracted_claims.json` for the corresponding article. Read the extraction file before writing. If a number is not in the extraction (e.g., only in the full-text), either omit it or flag it with `<!-- UNVERIFIED: value from full-text, not in abstract -->` in the markdown.
-
-3. **Critical Analysis**: evaluate methodological strengths/limitations, assess evidence quality and consistency, identify knowledge gaps
-
-4. **Write Discussion**: interpret findings in context, discuss implications, acknowledge review limitations, propose future research directions
-
-5. **Add BibTeX block**: include a `bibtex` fenced code block at the end of the document with all cited references (format: `references/bibtex_format.md`). This block is read by `generate_bib.py` at Gate 6b to produce the authoritative `references.bib`.
-
-For best practices and pitfalls to avoid, read `references/best_practices.md`.
-
-### ═══ GATE 5 — MANDATORY BEFORE PHASE 6 ═══
-
-Verify `review/<topic>_review.md` is complete: YAML header, Introduction, Methods (with search strategy), Results (organized by themes, not study-by-study — all themes from GATE 4 covered), Discussion, Limitations, all `[@citations]` use valid BibTeX keys, BibTeX reference block at end of `.md`. For meta-analyses: Appendix F must be populated (statistical software, model, sensitivity analyses). If any section is missing, complete Phase 5 before proceeding.
-
-## Phase 6: Citation Verification
-
-**STOP. Do NOT skip this phase.** All citations must be verified before Phase 7.
-
-### ═══ GATE 6a — VERIFY ALL CITATIONS ═══
-
-```bash
-uv run python "$SKILL_DIR/scripts/verify_citations.py" review/<topic>_review.md \
-  --timeout 15
-```
-
-Options: `--timeout SECONDS` (default: 10), `--no-retractions` (skip retraction checks — faster but not recommended for systematic reviews), `--output FILE` (JSON report path).
-
-Review the generated `review/<topic>_review_citation_report.json`. For each failed DOI: search for the correct DOI via CrossRef or PubMed. If no DOI exists (e.g., preprint, old publication), remove the `doi` field from the BibTeX entry but keep the citation. Re-run until all resolvable DOIs pass. If a DOI still fails after 2 correction attempts, treat it as unresolvable: remove the `doi` field and keep the citation.
-
-### ═══ GATE 6b — GENERATE BIBLIOGRAPHY ═══
-
-Phase 7 requires `review/references.bib`. This file is produced by `generate_bib.py`. If this file does not exist, Phase 7 CANNOT begin.
-
-```bash
-uv run python "$SKILL_DIR/scripts/generate_bib.py" review/<topic>_review.md \
-  --output review/references.bib
-```
-
-Review cross-verification output: fix any mismatches between markdown references and generated BibTeX entries.
-
-### ═══ GATE 6c — VERIFY NUMERICAL CLAIMS ═══
-
-Cross-verify all numerical claims in the review against the extracted data from abstracts.
-
-**Step 1 — First verification pass:**
-
-```bash
-uv run python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
-  --claims review/extracted_claims.json \
-  --output review/claims_audit.json
-```
-
-**Step 2 — Enrich with full-text**: if many claims are UNVERIFIED, fetch full-text for those articles only (access cascade: PMC → Unpaywall → Publisher → Sci-Hub) and extract additional claims:
-
-```bash
-uv run python "$SKILL_DIR/scripts/fetch_fulltext.py" review/claims_audit.json \
-  --extraction review/extracted_claims.json \
-  --bib review/references.bib \
-  --output review/extracted_claims.json
-```
-
-This tries open-access sources first (PMC, Unpaywall), then Sci-Hub as fallback for UNVERIFIED articles. Extracted claims are merged into `extracted_claims.json`.
-
-**Step 3 — Re-verify** with enriched data:
-
-```bash
-uv run python "$SKILL_DIR/scripts/verify_claims.py" review/<topic>_review.md \
-  --claims review/extracted_claims.json \
-  --output review/claims_audit.json
-```
-
-Review the audit report. For each status:
-- **VERIFIED**: number confirmed in the article's abstract — no action needed
-- **UNVERIFIED**: number NOT found in the abstract. If the claim has a `<!-- UNVERIFIED: ... -->` comment placed during Phase 5, this is expected — verify the number against the full-text source and replace with `<!-- VERIFIED: full-text -->`. If there is no such comment, the number may be hallucinated — check the source article and fix immediately if wrong
-- **NO_ABSTRACT**: article had no abstract — manual check required against full-text
-- **NO_EXTRACTION**: article missing from extraction — re-run extract_data.py with correct rows
-
-A claim is hallucinated if the number does not appear in the source article at all, or is attributed to the wrong article. Fix all hallucinated claims (correct the number, fix the attribution, or remove the claim) before proceeding. Print the summary counts.
-
-**Maintain a `bibtex` code block** at the end of the `.md` listing all cited references (see `references/bibtex_format.md`). This block is a cross-verification artifact read by `generate_bib.py` — the authoritative bibliography is the external `references.bib` generated at Gate 6b. Keys follow `FirstAuthorLastName_Year` pattern (deduplicated with suffix a, b, c).
+Verify:
+- `review/references.bib` exists with at least 1 entry
+- `review/claims_audit.json` exists
+- `review/<topic>_review_citation_report.json` exists
+- Verification summary was printed (DOIs verified/failed, claims verified/unverified)
 
 ## Phase 7: Final Quality Check
 
-### ═══ GATE 7 — FINAL QUALITY CHECK ═══
+Print each item and mark PASS or FAIL. If any item is FAIL, fix it using the corrective action below. If not resolved after 2 attempts (2 distinct corrective actions), mark FAIL (UNRESOLVABLE), document the reason, and proceed.
 
-Print each item below and mark PASS or FAIL. If any item is FAIL, go back and fix it before delivering:
+Corrective actions by item:
+- Items 1-3: re-invoke `litrev-verify`
+- Item 4: edit `review/<topic>_review.md` directly (fix citation syntax)
+- Items 5-7: edit `review/<topic>_review.md` directly (add missing sections)
+- Item 8: re-invoke `litrev-synthesize` (restructure results)
+- Item 9: re-invoke `litrev-extract` (redo quality assessment)
+- Item 10: edit `review/<topic>_review.md` directly (add limitations)
 
 ```
-1. verify_citations.py executed, all DOIs verified?      [PASS/FAIL]
-2. generate_bib.py executed, references.bib exists?      [PASS/FAIL]
-3. verify_claims.py executed, claims audit reviewed?     [PASS/FAIL]
-4. Citations formatted consistently (Pandoc syntax)?     [PASS/FAIL]
-5. PRISMA flow diagram included?                         [PASS/FAIL or N/A for narrative]
-6. Search methodology fully documented?                  [PASS/FAIL]
-7. Inclusion/exclusion criteria clearly stated?          [PASS/FAIL]
-8. Results organized thematically (not study-by-study)?  [PASS/FAIL]
-9. Quality assessment completed (RoB/GRADE)?             [PASS/FAIL or N/A]
-10. Limitations acknowledged?                            [PASS/FAIL]
-11. references.bib referenced in YAML header?            [PASS/FAIL]
+1. All resolvable DOIs verified?                            [PASS/FAIL]
+2. references.bib exists and referenced in YAML header?     [PASS/FAIL]
+3. Claims audit completed, hallucinated claims fixed?       [PASS/FAIL]
+4. Citations use consistent Pandoc syntax?                  [PASS/FAIL]
+5. PRISMA flow documented?                                  [PASS/FAIL or N/A]
+6. Search methodology fully documented?                     [PASS/FAIL]
+7. Inclusion/exclusion criteria clearly stated?             [PASS/FAIL]
+8. Results organized thematically (not study-by-study)?     [PASS/FAIL]
+9. Quality assessment completed?                            [PASS/FAIL or N/A]
+10. Limitations acknowledged?                               [PASS/FAIL]
 ```
 
-### Output Files
+## Review Type Routing
 
+Each sub-skill handles its own adaptations internally. The orchestrator's role is to route correctly:
+
+| Review Type | Databases | Screening | Snowballing | Quality | PRISMA |
+|-------------|-----------|-----------|-------------|---------|--------|
+| Systematic | >= 3 | Title + Abstract + Full-text | Recommended (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
+| Meta-analysis | >= 3 | Title + Abstract + Full-text | Recommended (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
+| Scoping | >= 3 | Title + Abstract + Optional FT | Recommended (both) | Optional (PRISMA-ScR) | PRISMA-ScR |
+| Narrative | >= 2 | Title + Abstract + Optional FT | Optional (backward) | Simplified | Simplified |
+| Rapid | >= 2 | Combined title/abstract | Optional (forward, cap 5) | Simplified | Simplified |
+
+Gate adjustments by review type:
+- **Gate 3b**: N/A when snowballing is skipped
+- **Gate 4 quality**: may be null for scoping reviews
+- **Gate 5 PRISMA**: simplified flow acceptable for narrative/rapid
+- **Gate 7 items 5 and 9**: N/A where indicated above
+
+## Session Resumption
+
+When `review/` already contains files, reconstruct the pipeline state:
+
+| File | Indicates |
+|------|-----------|
+| `protocol.md` | Gate 1 passed — read to restore research question, framework, review type, criteria, search strategy |
+| `combined_results.json` | Gate 2 input ready |
+| `search_results.md` + `search_log.md` | Gate 2 passed |
+| `screening_log.md` (check for `Status: COMPLETE` on each section) | Gate 3a progress |
+| `included_indices.json` | Gate 3a passed |
+| `screening_log.md` with `## Citation Snowballing` + `Status: COMPLETE` | Gate 3b passed |
+| `extracted_claims.json` | Gate 4 passed |
+| `*_review.md` (glob `review/*_review.md`) | Gate 5 in progress or passed (check for all sections). If missing required sections, re-invoke `litrev-synthesize` — it detects existing files and resumes. If multiple files match, ask the user which to use. |
+| `references.bib` | Gate 6 partially passed (bibliography generated) |
+| `claims_audit.json` + `*_review_citation_report.json` | Gate 6 passed (all three outputs present) |
+
+Resume from the first incomplete gate. Tell the user which phases are already done.
+
+## Error Recovery
+
+If a sub-skill fails:
+
+1. **Missing input file**: identify which upstream phase produces the missing file (see Interface Contracts below) and re-run that phase
+2. **Gate not passed**: re-invoke the sub-skill for that phase — do not skip the gate
+3. **Zero results at screening**: discuss with the user (broaden criteria, expand search, or report absence)
+4. **API failures during search/verify**: the sub-skills handle retries internally — if still failing, document the failure and ask the user whether to proceed with partial results or retry later
+
+## Interface Contracts
+
+| Skill | Reads | Writes |
+|-------|-------|--------|
+| litrev-search | Protocol from conversation | `combined_results.json`, `search_results.md`, `search_log.md` |
+| litrev-screen | `search_results.md`, `combined_results.json`, criteria | `screening_log.md`, `included_indices.json` |
+| litrev-snowball | `combined_results.json`, `included_indices.json`, criteria | `chaining_candidates.json`, updates `combined_results.json` + `included_indices.json` on merge |
+| litrev-extract | `combined_results.json`, `included_indices.json` | `extracted_claims.json` |
+| litrev-synthesize | `extracted_claims.json`, `screening_log.md`, `search_results.md`, `combined_results.json` | `<topic>_review.md`, `vancouver.csl` |
+| litrev-verify | `<topic>_review.md`, `extracted_claims.json` | `references.bib`, `claims_audit.json`, `<topic>_review_citation_report.json` |
+
+## Output Files
+
+- `review/protocol.md` — persisted protocol (question, framework, review type, criteria, search strategy)
 - `review/<topic>_review.md` — main review document
-- `review/references.bib` — generated BibTeX bibliography
-- `review/search_results.md` — processed search results
-- `review/extracted_claims.json` — structured numerical claims from abstracts (source of truth)
+- `review/references.bib` — BibTeX bibliography
+- `review/combined_results.json` — aggregated search results
+- `review/search_results.md` — ranked search results table
+- `review/search_log.md` — search documentation
+- `review/screening_log.md` — screening decisions
+- `review/included_indices.json` — included article indices
+- `review/extracted_claims.json` — structured claims + quality + themes
+- `review/claims_audit.json` — claims cross-verification report
 - `review/<topic>_review_citation_report.json` — citation verification report
-- `review/claims_audit.json` — cross-verification audit report (claims vs abstracts)
-- `review/screening_log.md` — screening decisions (for session resumption)
-- `review/chaining_candidates.json` — citation chaining candidates (only if `--merge` not used)
-
-## Review Type Adaptations
-
-- **Systematic Review**: Use all phases and gates
-- **Meta-Analysis**: Use all phases and gates. Include meta-analysis details in Appendix F (template provided in `assets/review_template.md`: statistical software, model choice, code, sensitivity analyses)
-- **Narrative Review**: All gates apply. Relaxations: Gate 3 PRISMA counts may use simplified flow (no formal diagram), Gate 4a quality assessment may use a simplified approach (e.g., Oxford CEBM levels of evidence, or informal Low/Moderate/High rating without a full tool) and may omit GRADE. All other gates (1, 2, 4b, 5, 6a–6c, 7) remain fully mandatory
-- **Scoping Review**: Follow PRISMA-ScR. Relaxations: Gate 4a may omit quality assessment and GRADE. All other gates remain fully mandatory including Gates 4b and 6c (claim extraction and verification are independent of quality assessment)
-- **Rapid Review**: Streamlined systematic review — use minimum 2 databases (instead of 3), simplified screening (title+abstract in one pass), narrative quality assessment (as per Narrative Review), may omit citation chaining. All verification gates (6a–6c) still apply. Note the methodological shortcuts as limitations in the review document
-
-## Reference Files
-
-- `references/database_strategies.md` — Database search syntax and strategies
-- `references/bibtex_format.md` — BibTeX formatting guide
-- `references/json_schema.md` — JSON schema for search results
-- `references/paper_prioritization.md` — Citation thresholds, journal tiers, author assessment
-- `references/best_practices.md` — Best practices and common pitfalls
-- `references/resources.md` — Scripts inventory, external resources, dependencies
-
-## Institutional Access
-
-If the user has institutional access (university), two mechanisms are supported:
-
-**VPN (recommended)**: Connect to the university VPN before running the skill. No configuration needed — `fetch_fulltext.py` will automatically access publisher PDFs via the DOI resolver. The cascade becomes: PMC → Unpaywall → **Publisher** → Sci-Hub.
-
-**Database access (Phase 2)**: With VPN active, the user can search EMBASE/Ovid, Web of Science, Scopus, and CINAHL via their institution's web portal — search strategies are documented in `references/database_strategies.md`.
-
-Without VPN, the skill works with free sources only (PubMed, PMC, Unpaywall, Semantic Scholar, OpenAlex, Sci-Hub). The publisher source is still attempted but will fail for paywalled articles.
-
-## Dependencies
-
-- **Python** >= 3.11
-- **uv** (manages dependencies via `pyproject.toml`; run `uv sync` to install)
-- **pdftotext** (from `poppler-utils`, used by `fetch_fulltext.py`)
+- `review/vancouver.csl` — citation style file

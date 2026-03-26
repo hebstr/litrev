@@ -1,0 +1,14 @@
+{
+  "eval_id": 1,
+  "eval_name": "session-resume",
+  "prompt": "Je reprends ma review sur les inhibiteurs SGLT2 dans l'insuffisance cardiaque. Le dossier review/ contient déjà les résultats de recherche et le screening.",
+  "assertions": [
+    "The orchestrator prints an execution tracker with Gates 1, 2, and 3a marked as passed/completed",
+    "The orchestrator reads review/protocol.md and restores the research question about SGLT2 inhibitors in heart failure",
+    "The orchestrator identifies that the next phase is snowballing (Phase 3b) or extraction (Phase 4)",
+    "The orchestrator tells the user which phases are already done before proceeding",
+    "The orchestrator uses the PICO framework components from the protocol (Population: adults with HF, Intervention: SGLT2 inhibitors, etc.)",
+    "The orchestrator does NOT re-ask the user for the research question or inclusion criteria",
+    "The thin evidence warning is correctly not triggered (8 articles >= 5 threshold)"
+  ]
+}

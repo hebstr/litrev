@@ -1,46 +1,64 @@
 # litrev
 
 A Claude Code skill suite that conducts systematic, scoping, narrative, rapid, and meta-analytic literature reviews on medical and health research topics.
-Searches PubMed, Semantic Scholar, OpenAlex and other databases, screens articles, extracts claims, writes a thematic synthesis with Pandoc citations, and verifies every reference against CrossRef and PubMed.
+Searches PubMed/MEDLINE, Semantic Scholar, and OpenAlex, screens articles, extracts claims, writes a thematic synthesis with Pandoc citations, and verifies every reference against CrossRef and PubMed.
 
 ## Architecture
 
-The skill is decomposed into 7 standalone, self-contained sub-skills — each specialized in one phase of the review process.
-The orchestrator (`litrev`) handles planning, sequencing, and quality gates. All domain work is delegated to sub-skills.
+Hybrid architecture: **sub-skills** handle LLM reasoning (search strategy, screening decisions, synthesis writing), while a **MCP server** (`litrev-mcp`) handles deterministic execution (API calls, deduplication, BibTeX generation, claim verification). **Agents** handle post-pipeline quality audits.
+
+The orchestrator (`litrev`) handles planning, sequencing, and quality gates.
 
 ```
 litrev/                     ← orchestrator (sequencing + gates)
-litrev-search/              ← Phase 2: multi-database search, aggregation
-litrev-screen/              ← Phase 3: title/abstract/full-text screening
-litrev-snowball/            ← Phase 3b: citation chaining (backward/forward)
-litrev-extract/             ← Phase 4: claim extraction + quality assessment
-litrev-synthesize/          ← Phase 5: constrained thematic writing
-litrev-verify/              ← Phase 6: citation verification, BibTeX, claims audit
+├── agents/
+│   ├── audit_fidelity.md   ← Phase 8: fidelity audit (claims vs sources)
+│   └── audit_methodology.md ← Phase 8: methodology audit (synthesis critique)
+litrev-search/              ← Phase 2: search strategy (LLM) + MCP execution
+litrev-screen/              ← Phase 3: screening decisions (LLM) + MCP abstract fetch
+litrev-extract/             ← Phase 4: claim extraction (LLM) + MCP regex extraction
+litrev-synthesize/          ← Phase 5: constrained thematic writing (LLM only)
+litrev-mcp/                 ← MCP server: 8 deterministic tools
 ```
+
+### MCP tools (`litrev-mcp`)
+
+| Tool | Purpose |
+|------|---------|
+| `process_results` | Deduplicate, rank, filter, format search results |
+| `deduplicate_results` | Deduplicate combined_results.json by PMID/DOI/title |
+| `fetch_abstracts` | Retrieve missing abstracts from PubMed |
+| `extract_claims_regex` | Quantitative claim extraction by regex |
+| `citation_chain` | Backward/forward citation chaining via Semantic Scholar + OpenAlex |
+| `verify_dois` | DOI/PMID validation + retraction check (CrossRef + PubMed) |
+| `generate_bibliography` | BibTeX generation (3-level DOI resolution) |
+| `audit_claims` | Cross-verify numerical claims vs source abstracts |
 
 ### Design principles
 
-- **Self-contained**: each sub-skill ships its own scripts, references, and Python dependencies — no cross-references between skills
-- **Interface contracts**: skills communicate through well-defined JSON and markdown files in a shared `review/` directory
-- **Lightweight orchestrator**: no domain-execution logic, just sequencing and gate checks
-- **Session resumable**: the pipeline persists state to `review/` files, so a review can be resumed across sessions
+- **Hybrid**: LLM reasoning in skills, deterministic execution in MCP tools
+- **Interface contracts**: phases communicate through well-defined JSON and markdown files in `review/`
+- **Lightweight orchestrator**: sequencing and gate checks only, no domain logic
+- **Session resumable**: pipeline state persisted to `review/` files
+- **Double audit**: fidelity + methodology audits with interactive walkthrough before completion
 
 ### Pipeline flow
 
 ```
-Planning → Search → Screen → Snowball (optional) → Extract → Synthesize → Verify → Final QC
+Planning → Search → Screen → Snowball (optional) → Extract → Synthesize → Verify → Final QC → Double Audit + Walkthrough
 ```
 
-| Phase | Skill | What it does |
-|-------|-------|--------------|
+| Phase | Delegate | What it does |
+|-------|----------|--------------|
 | 1 | `litrev` | Define research question (PICO/PEO/SPIDER), scope, inclusion/exclusion criteria |
-| 2 | `litrev-search` | Query PubMed, Semantic Scholar, OpenAlex; deduplicate and rank results |
-| 3a | `litrev-screen` | Multi-pass title/abstract/full-text screening with PRISMA counts |
-| 3b | `litrev-snowball` | Backward and forward citation chaining via Semantic Scholar and OpenAlex |
-| 4 | `litrev-extract` | Quantitative/qualitative claim extraction, study quality assessment, theme assignment |
-| 5 | `litrev-synthesize` | Constrained thematic writing — every claim traced to source or flagged unverified |
-| 6 | `litrev-verify` | DOI/PMID validation, retraction check, BibTeX generation, numerical claims audit |
+| 2 | Skill `litrev-search` + MCP `process_results`, `deduplicate_results` | Query databases, deduplicate and rank results |
+| 3a | Skill `litrev-screen` + MCP `fetch_abstracts` | Multi-pass title/abstract/full-text screening with PRISMA counts |
+| 3b | MCP `citation_chain` + inline screening | Backward and forward citation chaining |
+| 4 | Skill `litrev-extract` + MCP `extract_claims_regex` | Claim extraction, quality assessment, theme assignment |
+| 5 | Skill `litrev-synthesize` | Constrained thematic writing — every claim traced to source |
+| 6 | MCP `verify_dois` + `generate_bibliography` + `audit_claims` | DOI validation, BibTeX generation, claims audit |
 | 7 | `litrev` | Final quality checklist (10 items) |
+| 8 | Agent `audit_fidelity` + Agent `audit_methodology` + `/review-walkthrough` | Fidelity + methodology audit, interactive walkthrough |
 
 ### Review types
 
@@ -57,29 +75,27 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 ### Prerequisites
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed and authenticated
-- Python >= 3.11 with [uv](https://docs.astral.sh/uv/) (for sub-skill script dependencies)
+- Python >= 3.11 with [uv](https://docs.astral.sh/uv/)
 - Internet access (PubMed, Semantic Scholar, OpenAlex, CrossRef, doi.org APIs)
 
-### Install from marketplace
+### Install the MCP server
 
 ```bash
-claude skills install litrev
+cd ~/.claude/skills/litrev-mcp
+uv venv .venv && uv pip install -e . --python .venv/bin/python
 ```
 
-This installs all 7 skills (`litrev`, `litrev-search`, `litrev-screen`, `litrev-snowball`, `litrev-extract`, `litrev-synthesize`, `litrev-verify`) into `~/.claude/skills/`.
+The MCP server is configured in `~/.claude/.mcp.json`:
 
-### Install Python dependencies
-
-Each sub-skill that uses Python scripts has its own `pyproject.toml`. Install dependencies once per skill:
-
-```bash
-for skill in litrev-search litrev-screen litrev-snowball litrev-extract litrev-verify; do
-  cd ~/.claude/skills/$skill
-  uv venv .venv && uv pip install -e . --python .venv/bin/python
-done
+```json
+{
+  "litrev-mcp": {
+    "type": "stdio",
+    "command": "~/.claude/skills/litrev-mcp/.venv/bin/python",
+    "args": ["-m", "litrev_mcp.server"]
+  }
+}
 ```
-
-`litrev-synthesize` has no Python dependencies (LLM-driven writing only).
 
 ### Optional: NCBI API key
 
@@ -115,17 +131,16 @@ All output goes to `review/` in the current directory.
 
 ### Individual phases (standalone)
 
-Each sub-skill can be invoked independently. For example, to run only the search phase:
+Each sub-skill can be invoked independently:
 
 ```
 /litrev-search
+/litrev-screen
+/litrev-extract
+/litrev-synthesize
 ```
 
-Or to verify citations on an existing review document:
-
-```
-/litrev-verify
-```
+MCP tools can also be called directly by the LLM when needed.
 
 ### Resuming a review
 
@@ -150,6 +165,9 @@ All files are written to `review/` in the current working directory:
 | `claims_audit.json` | Cross-verification of every numerical claim |
 | `<topic>_review_citation_report.json` | DOI/PMID verification results |
 | `vancouver.csl` | Citation style file |
+| `audit_fidelity.md` | Fidelity audit report (claims vs sources) |
+| `audit_methodology.md` | Methodology audit report (synthesis critique) |
+| `DEFERRED.md` | Deferred findings with justifications (if any) |
 
 The review document can be compiled to PDF, DOCX, or HTML with Pandoc:
 
@@ -160,4 +178,4 @@ pandoc <topic>_review.md --citeproc --bibliography=references.bib --csl=vancouve
 
 ## Example
 
-See [example/](example/) for a complete end-to-end run (PRISE scoping review on rotator cuff comorbidities and shoulder pain).
+See [example_new/](example_new/) for a complete end-to-end run (all 8 phases including double audit with walkthrough).

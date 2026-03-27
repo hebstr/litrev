@@ -1,7 +1,7 @@
 ---
 name: litrev
 context: fork
-description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical, clinical, and health research. Also triggers for medical/health topics: state-of-the-art summaries, evidence maps, clinical practice guidelines, or requests to summarize/synthesize published studies — including functional descriptions like "what does the evidence say about [medical topic]", "what do we know about [medical topic]", "what does the science say about [medical topic]", "what have studies found on [medical topic]", "summarize the research on [medical topic]", "go through all the studies on [treatment/condition]", "combine the results across trials", "find gaps in the literature on [medical topic]", "pull together the evidence on [medical topic]", "what's been published on [medical topic]", "pooled estimates", "pooled analysis", "pooled data", or "revue de la littérature / revue systématique / méta-analyse / synthèse des preuves / état de l'art / état des connaissances / guide de pratique clinique / passer en revue les études sur / aperçu de ce qui a été publié sur / résumer les études sur". Also triggers for informal variants: "lit review on [medical topic]". Searches PubMed/MEDLINE, EMBASE, Cochrane CENTRAL, ClinicalTrials.gov, and other medical databases following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations. Do NOT trigger for: non-medical domains (software engineering, education, environmental science, social sciences, etc.) even if using review methodology vocabulary, formatting existing manuscripts, writing BibTeX cleanup scripts, drawing PRISMA diagrams in code, explaining database search methodology, explaining PRISMA/Cochrane/GRADE methodology without conducting a review, or brief factual summaries on medical topics when the user explicitly declines a structured review.
+description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical, clinical, and health research. Also triggers for medical/health topics: state-of-the-art summaries, evidence maps, clinical practice guidelines, or requests to summarize/synthesize published studies — including functional descriptions like "what does the evidence say about [medical topic]", "what do we know about [medical topic]", "what does the science say about [medical topic]", "what have studies found on [medical topic]", "summarize the research on [medical topic]", "go through all the studies on [treatment/condition]", "combine the results across trials", "find gaps in the literature on [medical topic]", "pull together the evidence on [medical topic]", "what's been published on [medical topic]", "pool/synthesize the estimates across studies", "run a pooled analysis on [medical topic]", "pooled data from multiple trials", or "revue de la littérature / revue systématique / méta-analyse / synthèse des preuves / état de l'art / état des connaissances / guide de pratique clinique / passer en revue les études sur / aperçu de ce qui a été publié sur / résumer les études sur / faire le point sur les publications sur / qu'est-ce qu'on sait sur [sujet médical] / tout ce qui existe comme études sur". Also triggers for informal variants: "lit review on [medical topic]". Searches PubMed/MEDLINE, Semantic Scholar, and OpenAlex (optionally ClinicalTrials.gov and medRxiv) following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations. Do NOT trigger for: non-medical domains (software engineering, education, environmental science, social sciences, etc.) even if using review methodology vocabulary, formatting existing manuscripts, writing BibTeX cleanup scripts, drawing PRISMA diagrams in code, explaining database search methodology, explaining PRISMA/Cochrane/GRADE methodology without conducting a review, or brief factual summaries on medical topics when the user explicitly declines a structured review.
 allowed-tools: Read Write Edit Bash WebFetch WebSearch
 ---
 
@@ -21,26 +21,27 @@ allowed-tools: Read Write Edit Bash WebFetch WebSearch
 ### Git status of review/
 !`git log --oneline -5 -- review/ 2>/dev/null || echo "(no git history for review/)"`
 
-Sequence six sub-skills into a complete literature review pipeline. This skill contains **no domain-execution logic** — it handles planning, sequencing, gates, and error recovery. All domain work is delegated to sub-skills.
+Sequence sub-skills and MCP tools into a complete literature review pipeline. Planning, sequencing, gates, and error recovery are handled here. Domain work is delegated to sub-skills (LLM reasoning) or MCP tools (deterministic execution).
 
 ## Pipeline
 
 ```
-Planning → litrev-search → litrev-screen → litrev-snowball (optional) → litrev-extract → litrev-synthesize → litrev-verify → Final QC
+Planning → litrev-search → litrev-screen → Snowballing (MCP, optional) → litrev-extract → litrev-synthesize → Verification (MCP) → Final QC → Double Audit + Walkthrough
 ```
 
-## Sub-skills
+## Sub-skills and MCP tools
 
-| Phase | Skill | Purpose |
-|-------|-------|---------|
-| 2 | `litrev-search` | Multi-database search + aggregation |
-| 3a | `litrev-screen` | Title / abstract / full-text screening |
-| 3b | `litrev-snowball` | Citation chaining (backward + forward) |
-| 4 | `litrev-extract` | Claim extraction + quality assessment |
-| 5 | `litrev-synthesize` | Constrained thematic writing |
-| 6 | `litrev-verify` | Citation verification, BibTeX, claims audit |
+| Phase | Delegate | Purpose |
+|-------|----------|---------|
+| 2 | Skill `litrev-search` | Multi-database search + aggregation |
+| 3a | Skill `litrev-screen` | Title / abstract / full-text screening |
+| 3b | MCP `citation_chain` + inline screening | Citation chaining (backward + forward) |
+| 4 | Skill `litrev-extract` | Claim extraction + quality assessment |
+| 5 | Skill `litrev-synthesize` | Constrained thematic writing |
+| 6 | MCP `verify_dois` + `generate_bibliography` + `audit_claims` | Citation verification, BibTeX, claims audit |
+| 8 | Agent `audit_fidelity` + Agent `audit_methodology` + `/review-walkthrough` | Factual + structural audit, interactive walkthrough |
 
-Each sub-skill can be invoked independently (standalone mode) or by this orchestrator (orchestrated mode). In orchestrated mode, sub-skills read their inputs from the conversation context and `review/` files — they do not re-ask the user for information already established.
+Sub-skills can be invoked independently (standalone mode) or by this orchestrator (orchestrated mode). In orchestrated mode, sub-skills read their inputs from the conversation context and `review/` files — they do not re-ask the user for information already established.
 
 ## Invoking Sub-skills
 
@@ -59,16 +60,18 @@ If resuming a previous session, check `review/` for existing files and reconstru
   - [ ] GATE 2: review/combined_results.json + review/search_results.md + review/search_log.md exist
 - [ ] Phase 3a Screening (litrev-screen)
   - [ ] GATE 3a: review/screening_log.md + review/included_indices.json exist, PRISMA counts printed
-- [ ] Phase 3b Snowballing (litrev-snowball) — optional per review type
+- [ ] Phase 3b Snowballing (MCP + inline) — optional per review type
   - [ ] GATE 3b: Citation Snowballing section in screening_log.md with Status: COMPLETE
 - [ ] Phase 4 Extraction (litrev-extract)
   - [ ] GATE 4: review/extracted_claims.json exists, summary table + quality ratings printed
 - [ ] Phase 5 Synthesis (litrev-synthesize)
   - [ ] GATE 5: review/<topic>_review.md exists with all sections, BibTeX block present
-- [ ] Phase 6 Verification (litrev-verify)
+- [ ] Phase 6 Verification (MCP tools)
   - [ ] GATE 6: review/references.bib + review/claims_audit.json exist, verification summary printed
 - [ ] Phase 7 Final Quality Check
   - [ ] GATE 7: quality checklist printed, all items PASS
+- [ ] Phase 8 Double Audit + Review Walkthrough
+  - [ ] GATE 8: both audits complete, walkthroughs done, no unresolved critical, all major have status
 ```
 
 ## Setup
@@ -135,7 +138,72 @@ If fewer than 5 articles are included, warn the user that the evidence base is t
 
 ## Phase 3b: Snowballing (optional)
 
-Consult the review type routing table. For systematic and meta-analysis reviews, invoke `litrev-snowball` automatically. For scoping, narrative, and rapid reviews, recommend it to the user and invoke only if they accept. When offering, specify the variant from the routing table (both directions for scoping, backward only for narrative, forward only capped at 5 seeds for rapid).
+Consult the review type routing table. For systematic and meta-analysis reviews, run snowballing automatically. For scoping, narrative, and rapid reviews, recommend it to the user and proceed only if they accept. When offering, specify the variant from the routing table (both directions for scoping, backward only for narrative, forward only capped at 5 seeds for rapid).
+
+### Step 3b.1 — Select seed papers
+
+Read `review/included_indices.json` and load corresponding records from `review/combined_results.json`.
+
+Seed selection:
+- If ≤10 included articles: use all as seeds (rapid reviews: cap at 5, pick highest citation count)
+- If >10: select the 10 most relevant by citation count, then relevance to the research question, then recency. Present the selection and confirm with the user
+- Each seed needs a DOI or PMID. Skip seeds without identifiers and warn the user if more than half lack them
+
+### Step 3b.2 — Run citation chaining
+
+Call the MCP tool `citation_chain` with:
+- `results_path`: `"review/combined_results.json"`
+- `seed_rows`: list of 0-based seed indices
+- `direction`: `"both"` (systematic/meta-analysis/scoping), `"backward"` (narrative), or `"forward"` (rapid)
+- `sources`: `"s2,openalex"`
+- `output_path`: `"review/chaining_candidates.json"`
+
+The tool deduplicates candidates against existing results.
+
+### Step 3b.3 — Screen candidates
+
+Read `review/chaining_candidates.json`. Apply the same inclusion/exclusion criteria from the screening phase (from `review/screening_log.md` or conversation context).
+
+This is a **single-pass combined screen** (title + abstract together). Snowball candidates are citation-adjacent to included studies, so they are more likely relevant. For each candidate: check exclusion criteria in order, exclude at first failure, include when in doubt.
+
+If >50 candidates, screen in batches of 20 with a running tally.
+
+### Step 3b.4 — Document and merge
+
+Append a `## Citation Snowballing` section to `review/screening_log.md`:
+
+```markdown
+## Citation Snowballing
+
+- **Date**: YYYY-MM-DD
+- **Seed papers**: <count> (indices: <space-separated>)
+- **Direction**: backward / forward / both
+- **Sources**: Semantic Scholar, OpenAlex
+- **Raw candidates found**: <count>
+- **After deduplication (vs existing)**: <count>
+- **Criteria applied**: <same criteria as original screening>
+
+### Retained (<count>)
+
+| Index | Title (truncated) | First Author (Year) | Source |
+|-------|-------------------|---------------------|--------|
+| — | Effect of probiotics... | Smith (2023) | S2-backward |
+
+### Excluded (<count>)
+
+| Title (truncated) | First Author (Year) | Reason |
+|-------------------|---------------------|--------|
+| Pediatric C. diff... | Jones (2020) | Pediatric population |
+
+Status: COMPLETE
+```
+
+Then merge retained candidates:
+1. Append retained candidates to `review/combined_results.json` (new indices start at previous array length)
+2. Add new indices to `review/included_indices.json`
+3. Overwrite `review/chaining_candidates.json` with only the retained candidates (the raw MCP output is no longer needed — screening decisions are documented in `screening_log.md`)
+
+Print a snowballing summary: seeds → raw candidates → after dedup → screened → retained/excluded with top exclusion reasons.
 
 ### === GATE 3b ===
 
@@ -168,11 +236,53 @@ Verify `review/<topic>_review.md` exists and contains:
 - YAML header declaring `bibliography: references.bib` (the file itself is created in Phase 6 — do not check for its existence here)
 - Introduction, Methodology, Results (organized by themes), Discussion, Conclusions
 - At least one `[@` Pandoc citation
-- A `bibtex` fenced code block with draft reference entries (consumed by `litrev-verify` in Phase 6 to produce the authoritative `references.bib`)
+- A `bibtex` fenced code block with draft reference entries (consumed by MCP `generate_bibliography` in Phase 6 to produce the authoritative `references.bib`)
 
 ## Phase 6: Verification
 
-Invoke `litrev-verify` in orchestrated mode.
+This phase uses MCP tools directly (no sub-skill invocation). Detect the topic slug from the existing `review/*_review.md` filename.
+
+### Step 6.1 — Verify DOIs and PMIDs (Gate 6a)
+
+Call the MCP tool `verify_dois` with:
+- `review_path`: `"review/<topic>_review.md"`
+- `check_retractions`: `true`
+- `timeout`: `15`
+
+Review the output report:
+- **Verified DOIs**: no action
+- **Failed DOIs**: search CrossRef by title, update the DOI in the review's BibTeX block. If no DOI exists, remove the `doi` field but keep the citation
+- **Retracted publications**: flag to the user immediately. Ask whether to remove or keep with retraction notice — do NOT silently proceed
+
+Re-run `verify_dois` after corrections until all resolvable DOIs pass (max 2 correction rounds per DOI). Print Gate 6a checkpoint: total DOIs, verified, failed, retracted.
+
+### Step 6.2 — Generate bibliography (Gate 6b)
+
+Call the MCP tool `generate_bibliography` with:
+- `review_path`: `"review/<topic>_review.md"`
+- `output_path`: `"review/references.bib"`
+- `timeout`: `15`
+
+Review cross-verification output (OK / MISMATCH / MISSING / EXTRA). Fix mismatches in the review's BibTeX block and re-run if needed (max 2 re-runs).
+
+After generation, cross-check citation keys used in text (`[@Key]`) against keys in `review/references.bib`. For keys cited but absent (no DOI → tool couldn't resolve), copy the entry from the review's embedded BibTeX block into `review/references.bib`.
+
+Print Gate 6b checkpoint: entries generated, mismatches, missing, extras.
+
+### Step 6.3 — Audit claims (Gate 6c)
+
+Call the MCP tool `audit_claims` with:
+- `review_path`: `"review/<topic>_review.md"`
+- `claims_path`: `"review/extracted_claims.json"`
+- `output_path`: `"review/claims_audit.json"`
+
+Review the audit report:
+- **VERIFIED**: confirmed in abstract — no action
+- **UNVERIFIED**: check for `<!-- UNVERIFIED: ... -->` comment (expected if from full-text). Otherwise, verify against source abstract — fix or remove hallucinated claims
+- **NO_ABSTRACT**: needs manual full-text verification
+- **NO_EXTRACTION**: key mismatch — check key resolution
+
+After corrections, re-run `audit_claims`. Print Gate 6c checkpoint: total claims, verified, unverified, no-abstract, no-extraction.
 
 ### === GATE 6 ===
 
@@ -187,7 +297,7 @@ Verify:
 Print each item and mark PASS or FAIL. If any item is FAIL, fix it using the corrective action below. If not resolved after 2 attempts (2 distinct corrective actions), mark FAIL (UNRESOLVABLE), document the reason, and proceed.
 
 Corrective actions by item:
-- Items 1-3: re-invoke `litrev-verify`
+- Items 1-3: re-run the relevant MCP tool (`verify_dois`, `generate_bibliography`, or `audit_claims`)
 - Item 4: edit `review/<topic>_review.md` directly (fix citation syntax)
 - Items 5-7: edit `review/<topic>_review.md` directly (add missing sections)
 - Item 8: re-invoke `litrev-synthesize` (restructure results)
@@ -206,6 +316,72 @@ Corrective actions by item:
 9. Quality assessment completed?                            [PASS/FAIL or N/A]
 10. Limitations acknowledged?                               [PASS/FAIL]
 ```
+
+## Phase 8: Double Audit + Review Walkthrough
+
+Post-GATE 7 quality assurance. Two independent audits run in parallel, each followed by an interactive walkthrough with the user.
+
+### Step 8.1 — Run both audits in parallel
+
+Launch two agents simultaneously using the Agent tool:
+
+1. **Fidelity audit**: Agent reads `agents/audit_fidelity.md` instructions. Reads `review/extracted_claims.json`, `review/claims_audit.json`, `review/references.bib`, `review/combined_results.json`, `review/protocol.md`. Writes `review/audit_fidelity.md`.
+
+2. **Methodology audit**: Agent reads `agents/audit_methodology.md` instructions. Reads `review/*_review.md`, `review/protocol.md`, `review/extracted_claims.json`, `review/screening_log.md`. Writes `review/audit_methodology.md`.
+
+Prompt each agent with:
+```
+Read the agent instructions at ~/.claude/skills/litrev/agents/<agent_file>.md, then execute the audit on the review/ directory in the current working directory. Write the report to review/<output_file>.md.
+```
+
+Both agents run in the background (parallel). Wait for both to complete before proceeding.
+
+### Step 8.2 — Deduplicate findings across audits
+
+Before walkthroughs, read both reports and check for overlapping findings:
+- Same underlying issue flagged by both audits (e.g., grey literature gap appears as coverage issue in A and undisclosed limitation in B)
+- Cross-reference by article key or section
+
+For overlaps: keep the finding in the audit where it fits best, add a cross-reference note in the other (e.g., "See also F-FID-16" or "See also F-MET-03"). Do not present the same issue twice in walkthroughs.
+
+### Step 8.3 — Interactive walkthroughs (sequential)
+
+Run walkthroughs sequentially — they are interactive and require user decisions.
+
+**Walkthrough A**: Invoke `/review-walkthrough` on the Audit A report. The user decides for each finding:
+- **ACCEPTED**: fix is applied immediately
+- **NOTED**: acknowledged, no action needed
+- **DEFERRED**: postponed with justification, recorded in `review/DEFERRED.md`
+- **REJECTED**: finding is invalid, with justification
+
+**Walkthrough B**: Same process on the Audit B report.
+
+After each walkthrough, update the corresponding audit report with decision annotations if needed.
+
+### Step 8.4 — Record deferred findings
+
+Create or update `review/DEFERRED.md` with all DEFERRED findings:
+
+```markdown
+# Deferred Findings
+
+| Date | Finding | Files affected | Reason | Deadline |
+|------|---------|---------------|--------|----------|
+| YYYY-MM-DD | F-XXX: description | file1, file2 | reason for deferral | condition or date |
+```
+
+### === GATE 8 ===
+
+GATE 8 = PASS when ALL of the following are true:
+1. `review/audit_fidelity.md` and `review/audit_methodology.md` exist
+2. Both walkthroughs completed (all findings have a decision)
+3. Zero CRITICAL findings with status other than ACCEPTED
+4. Every MAJOR finding has an explicit status (ACCEPTED, NOTED, or DEFERRED with justification)
+5. If any findings were DEFERRED, `review/DEFERRED.md` exists
+
+MINOR findings do not block GATE 8 — they may be left without action.
+
+If GATE 8 fails on criterion 3 (unresolved critical): the user must address the critical finding before proceeding. Offer to apply the recommended fix.
 
 ## Review Type Routing
 
@@ -241,6 +417,9 @@ When `review/` already contains files, reconstruct the pipeline state:
 | `*_review.md` (glob `review/*_review.md`) | Gate 5 in progress or passed (check for all sections). If missing required sections, re-invoke `litrev-synthesize` — it detects existing files and resumes. If multiple files match, ask the user which to use. |
 | `references.bib` | Gate 6 partially passed (bibliography generated) |
 | `claims_audit.json` + `*_review_citation_report.json` | Gate 6 passed (all three outputs present) |
+| `audit_fidelity.md` | Gate 8 fidelity audit complete (check for walkthrough decisions) |
+| `audit_methodology.md` | Gate 8 methodology audit complete (check for walkthrough decisions) |
+| `DEFERRED.md` | Gate 8 walkthroughs done (deferred findings recorded) |
 
 Resume from the first incomplete gate. Tell the user which phases are already done.
 
@@ -252,17 +431,24 @@ If a sub-skill fails:
 2. **Gate not passed**: re-invoke the sub-skill for that phase — do not skip the gate
 3. **Zero results at screening**: discuss with the user (broaden criteria, expand search, or report absence)
 4. **API failures during search/verify**: the sub-skills handle retries internally — if still failing, document the failure and ask the user whether to proceed with partial results or retry later
+5. **MCP tool not found or connection error**: the `litrev-mcp` server is not connected in this session. Tell the user to restart Claude Code so the MCP server is loaded from `~/.claude/.mcp.json`. Do not attempt to replicate MCP tool logic manually — the tools depend on rate-limited API clients and deduplication state that cannot be reproduced inline
 
 ## Interface Contracts
 
-| Skill | Reads | Writes |
-|-------|-------|--------|
-| litrev-search | Protocol from conversation | `combined_results.json`, `search_results.md`, `search_log.md` |
-| litrev-screen | `search_results.md`, `combined_results.json`, criteria | `screening_log.md`, `included_indices.json` |
-| litrev-snowball | `combined_results.json`, `included_indices.json`, criteria | `chaining_candidates.json`, updates `combined_results.json` + `included_indices.json` on merge |
-| litrev-extract | `combined_results.json`, `included_indices.json` | `extracted_claims.json` |
-| litrev-synthesize | `extracted_claims.json`, `screening_log.md`, `search_results.md`, `combined_results.json` | `<topic>_review.md`, `vancouver.csl` |
-| litrev-verify | `<topic>_review.md`, `extracted_claims.json` | `references.bib`, `claims_audit.json`, `<topic>_review_citation_report.json` |
+| Delegate | Reads | Writes |
+|----------|-------|--------|
+| Skill `litrev-search` | Protocol from conversation | `combined_results.json`, `search_results.md`, `search_log.md` |
+| Skill `litrev-screen` | `search_results.md`, `combined_results.json`, criteria | `screening_log.md`, `included_indices.json` |
+| MCP `citation_chain` | `combined_results.json`, seed indices | `chaining_candidates.json` |
+| Orchestrator (3b inline) | `chaining_candidates.json`, criteria | updates `combined_results.json`, `included_indices.json`, `screening_log.md` |
+| Skill `litrev-extract` | `combined_results.json`, `included_indices.json` | `extracted_claims.json` |
+| Skill `litrev-synthesize` | `extracted_claims.json`, `screening_log.md`, `search_results.md`, `combined_results.json` | `<topic>_review.md`, `vancouver.csl` |
+| MCP `verify_dois` | `<topic>_review.md` | `<topic>_review_citation_report.json` |
+| MCP `generate_bibliography` | `<topic>_review.md` | `references.bib` |
+| MCP `audit_claims` | `<topic>_review.md`, `extracted_claims.json` | `claims_audit.json` |
+| Agent `audit_fidelity` | `extracted_claims.json`, `claims_audit.json`, `references.bib`, `combined_results.json`, `protocol.md` | `audit_fidelity.md` |
+| Agent `audit_methodology` | `<topic>_review.md`, `protocol.md`, `extracted_claims.json`, `screening_log.md` | `audit_methodology.md` |
+| Orchestrator (8.4 inline) | Walkthrough decisions | `DEFERRED.md` |
 
 ## Output Files
 
@@ -278,3 +464,6 @@ If a sub-skill fails:
 - `review/claims_audit.json` — claims cross-verification report
 - `review/<topic>_review_citation_report.json` — citation verification report
 - `review/vancouver.csl` — citation style file
+- `review/audit_fidelity.md` — factual audit report (claims vs sources)
+- `review/audit_methodology.md` — structural audit report (synthesis critique)
+- `review/DEFERRED.md` — deferred findings with justifications (created only if deferrals exist)

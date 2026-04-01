@@ -52,6 +52,50 @@
         "The orchestrator asks the user whether to start fresh or use a different directory",
         "The orchestrator does NOT silently overwrite or ignore the existing protocol"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "On reprend la review scapulalgie. Le screening est terminé, il y a 12 articles inclus dans review/included_indices.json. Lance l'extraction.",
+      "expected_output": "The orchestrator invokes litrev-extract on the 12 included articles, producing extracted_claims.json with quantitative and semantic claims, quality ratings, study designs, and theme assignments.",
+      "files": [
+        "evals/fixtures/extract_10articles/combined_results.json",
+        "evals/fixtures/extract_10articles/included_indices.json",
+        "evals/fixtures/extract_10articles/expected.json"
+      ],
+      "expectations": [
+        "The orchestrator delegates to litrev-extract (not inline extraction)",
+        "extracted_claims.json is produced with entries for at least 8 of the 12 articles",
+        "Each article entry has claims (quantitative) and semantic_claims arrays",
+        "At least 15 total quantitative claims across all articles",
+        "At least 10 total semantic claims across all articles",
+        "All quantitative claims have a verbatim field with source text",
+        "Each article has a themes array with at least one theme assigned",
+        "The 2 degraded articles are handled: Beales_2023 (no abstract) gets NO_ABSTRACT or minimal claims, Rhon_2017 (no DOI) is still processed",
+        "Study design is assigned to each article (cohort, cross-sectional, SR/MA, RCT, etc.)",
+        "French-data articles (Bodin_2017, Bodin_2018) are present in the output"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "L'extraction est terminée. extracted_claims.json contient 8 articles avec 22 claims quantitatives et 26 semantic claims sur 7 thèmes. Lance la synthèse.",
+      "expected_output": "The orchestrator invokes litrev-synthesize on the extracted claims, producing a thematic synthesis document with Pandoc citations, structured by themes, in French.",
+      "files": [
+        "evals/fixtures/synthesize_20claims/extracted_claims.json",
+        "evals/fixtures/synthesize_20claims/protocol.md",
+        "evals/fixtures/synthesize_20claims/expected.json"
+      ],
+      "expectations": [
+        "The orchestrator delegates to litrev-synthesize (not inline synthesis)",
+        "A review markdown file (*_review.md) is produced",
+        "The synthesis is organized by themes (at least 3 of the 7 available themes)",
+        "The synthesis uses Pandoc citation syntax [@key] referencing article keys",
+        "At least 1 citation per theme section (min_citation_density_per_theme)",
+        "The synthesis is written in French (synthesis_language: fr, matching protocol)",
+        "French-data articles (Bodin_2018, Bodin_2020) are cited in the synthesis",
+        "The synthesis includes a YAML header with title and metadata",
+        "Quantitative claims from extracted_claims.json are incorporated with numbers preserved",
+        "The synthesis does NOT fabricate statistics not present in extracted_claims.json"
+      ]
     }
   ]
 }

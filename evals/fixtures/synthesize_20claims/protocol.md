@@ -9,23 +9,52 @@ Quelle est l'épidémiologie des scapulalgies et des pathologies de la coiffe de
 | Component | Definition |
 |-----------|------------|
 | **Population** | Adultes (≥ 18 ans) |
-| **Exposure** | Scapulalgies, pathologies de la coiffe des rotateurs |
-| **Outcomes** | Prévalence, incidence, facteurs de risque, impact socio-économique |
+| **Exposure** | Scapulalgies, pathologies de la coiffe des rotateurs (tendinopathies, ruptures, syndrome d'impingement) |
+| **Outcomes** | (1) Prévalence et incidence ; (2) Facteurs de risque (âge, sexe, activité professionnelle, comorbidités) ; (3) Reconnaissance en maladie professionnelle ; (4) Impact socio-économique (coûts directs/indirects, arrêts de travail) |
 
 ## Review Type
 
 Scoping review (PRISMA-ScR)
 
-## Language
+## Scope
 
-French
+- **Period**: 2010–2026
+- **Geographic priority**: French data prioritized, international data included to complement
+- **Context**: Introduction of the PRISE protocol (CHU de Lille) — retrospective multi-scale study (SNDS + EDS INCLUDE) on care trajectories of adult patients with shoulder pain
+- **Language**: French, English
 
-## Themes
+## Search Strategy
 
-1. Diagnostic accuracy and imaging
-2. Natural history and prognosis of RC pathology
-3. Occupational and work-related shoulder disorders
-4. Prevalence and epidemiology
-5. Psychological factors and pain experience
-6. Risk factors and comorbidities
-7. Socioeconomic impact and healthcare utilization
+### Concept 1 — Pathology
+shoulder pain, shoulder disorder, rotator cuff, supraspinatus, impingement syndrome, scapulalgia, tendinopathy, subacromial
+
+### Concept 2 — Epidemiology
+epidemiology, prevalence, incidence, risk factor, cohort, cross-sectional, population-based
+
+### Concept 3 — Socioeconomic impact
+occupational disease, work-related, sick leave, disability, economic burden, cost, work absence, compensation
+
+### Boolean combination
+(Concept 1) AND (Concept 2 OR Concept 3)
+
+### Databases
+1. PubMed/MEDLINE
+2. Semantic Scholar
+3. OpenAlex
+
+## Inclusion Criteria
+
+- Adults ≥ 18 years
+- Shoulder pain or rotator cuff pathologies
+- Studies reporting prevalence, incidence, risk factors, or socioeconomic impact
+- Published 2010–2026
+- Languages: English, French
+- Designs: observational studies (cohort, cross-sectional, case-control), systematic reviews, meta-analyses, epidemiological reports, health economic studies
+
+## Exclusion Criteria
+
+- Pediatric population (< 18 years)
+- Acute trauma (fractures, dislocations)
+- Exclusively interventional studies (therapeutic trials without epidemiological data)
+- Case reports, letters, editorials
+- Studies exclusively on frozen shoulder (adhesive capsulitis) without rotator cuff involvement

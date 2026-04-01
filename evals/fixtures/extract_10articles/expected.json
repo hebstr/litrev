@@ -1,5 +1,5 @@
 {
-  "description": "12 articles, mix of designs: 2 cohort, 2 cross-sectional, 2 SR/MA, 2 RCT, 2 other, plus 2 degraded cases (1 without abstract, 1 without DOI). Includes 2 French-data articles (Bodin_2017, Bodin_2018).",
+  "description": "12 articles, mix of designs: 4 cohort, 3 cross-sectional, 2 SR/MA, 3 other/case, plus 2 degraded cases (1 without abstract, 1 without DOI). Includes 2 French-data articles (Bodin_2017, Bodin_2018).",
   "source_run": "example_v2/review/ (scapulalgie scoping review, 2026-04-01)",
   "articles": [
     {
@@ -56,7 +56,7 @@
     },
     {
       "key_pattern": "Daliri_2023",
-      "expected_design": "RCT",
+      "expected_design": "cross-sectional",
       "min_claims": 26,
       "must_have_themes": [
         "Prevalence and epidemiology",
@@ -65,7 +65,7 @@
     },
     {
       "key_pattern": "Engebretsen_2020",
-      "expected_design": "RCT",
+      "expected_design": "cohort",
       "min_claims": 14,
       "must_have_themes": [
         "Risk factors and comorbidities",
@@ -115,11 +115,10 @@
     "total_articles": 12,
     "min_articles_with_claims": 8,
     "expected_designs": {
-      "cohort": 2,
-      "cross-sectional": 2,
+      "cohort": 4,
+      "cross-sectional": 3,
       "SR/MA": 2,
-      "RCT": 2,
-      "other_or_case": 2
+      "other_or_case": 3
     },
     "min_total_quantitative_claims": 15,
     "min_total_semantic_claims": 10,

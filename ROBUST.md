@@ -107,10 +107,10 @@ Réserver aux revues systematic/meta-analysis. Pas nécessaire pour narrative/ra
 |----------|--------|--------|--------|--------|
 | 1 | `/mcp-adversary` sur litrev-mcp | Faible | Haut — fondation | **Fait** (2026-04-01) |
 | 2 | `/skill-adversary` sur chaque sub-skill | Faible × 4 | Moyen — edge cases | **Fait** (2026-04-01) |
-| 3 | Fixtures de test Phase 4 + Phase 5 | Moyen | Filet de sécurité | À faire (cf. DEFERRED.md) |
+| 3 | Fixtures de test Phase 4 + Phase 5 | Moyen | Filet de sécurité | **Fait** (2026-04-01) : 12 articles P4, 8 articles/22 claims P5, evals 4+5 dans evals.json |
 | 4 | Test terrain (revue réelle) + feedback Phase 8 | Moyen | Haut — patterns réels | **Fait** (2026-04-01, scapulalgie scoping) |
-| 4b | Corriger bugs MCP (extract_claims_regex, audit_claims, generate_bibliography) | Moyen | Haut — bloque les evals | À faire (cf. memory `project_mcp_bugs_2026q2.md`) |
-| 5 | `/skill-adversary` sur orchestrateur litrev | Faible | Moyen — contextualisé par terrain | Après #4 |
+| 4b | Corriger bugs MCP (extract_claims_regex, audit_claims, generate_bibliography) | Moyen | Haut — bloque les evals | **Fait** (2026-04-01) : path resolution, French thousands, title cross-verification |
+| 5 | `/skill-adversary` sur orchestrateur litrev | Faible | Moyen — contextualisé par terrain | Prochaine étape |
 | 6 | Couche 1 gates mécaniques | Moyen | Haut — erreurs détectées tôt | À faire |
 | 7 | Couche 2 feedback loop systématisé | Faible | Haut (cumulatif) | **Fait** (2026-04-01, Step 9b dans SKILL.md) |
 | 8 | `/full-review` intégration | Faible | Moyen — inter-composants | Après #5 |

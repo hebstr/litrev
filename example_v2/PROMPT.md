@@ -1,4 +1,4 @@
-Lance /litrev dans ~/.claude/skills/litrev/example_v2 pour une scoping review sur :
+Lance /litrev pour une scoping review sur :
 
 Épidémiologie des scapulalgies et pathologies de la coiffe des rotateurs chez l'adulte :
 prévalence, incidence, facteurs de risque, et poids socio-économique.

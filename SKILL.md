@@ -88,8 +88,16 @@ All output files go in `review/` under the current working directory. If `review
 
 When any MCP tool response contains a `"tips"` field, relay **one tip at a time** to the user and offer to configure it.
 Example: "I notice Semantic Scholar API key isn't configured — this slows down citation chaining significantly. You can get a free key at [link]. Want me to set it up? Just paste the key and I'll add it to your config."
-If the user provides the value, read `~/.claude/.mcp.json`, add or update the variable in the `litrev-mcp` server's `env` block, and write the file back. Then tell the user to restart Claude Code for the change to take effect.
+If the user provides the value, read `~/.claude/.mcp.json`, add or update the variable in the `litrev-mcp` server's `env` block, and write the file back. Then tell the user to restart Claude Code for the change to take effect. Note: keys may also be injected via the server's launch script (e.g., sourcing a secrets file) — the `tips` field in MCP tool responses is the authoritative signal for whether a key is missing, not the `.mcp.json` env block.
 Do not prompt about the same variable twice in a session.
+
+### Degraded-mode alerting
+
+When any sub-skill or MCP tool reports degraded operation (missing API key, repeated HTTP 429s, database unreachable, partial query failures), the orchestrator must **stop and alert the user interactively** before continuing. Specifically:
+1. State the issue clearly (e.g., "Semantic Scholar API key not received by MCP server")
+2. State the impact on search coverage or result quality
+3. Ask whether to (a) stop and fix the issue now, or (b) continue with degraded results
+Never silently log a degradation and proceed — silent degradation leads to incomplete reviews that are only discovered downstream.
 
 ## Phase 1: Planning and Scoping
 

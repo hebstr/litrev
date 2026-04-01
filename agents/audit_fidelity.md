@@ -9,6 +9,7 @@ Read these files from `review/`:
 - `claims_audit.json` — automated claim verification results (VERIFIED / UNVERIFIED / NO_ABSTRACT / NO_EXTRACTION)
 - `references.bib` — BibTeX bibliography
 - `combined_results.json` — search results with abstracts
+- `protocol.md` — research question and review framework (needed for bibliographic coverage check)
 
 ## Checklist
 

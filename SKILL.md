@@ -2,7 +2,7 @@
 name: litrev
 context: main
 description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical, clinical, and health research. Also triggers for medical/health topics: state-of-the-art summaries, evidence maps, clinical practice guidelines, or requests to summarize/synthesize published studies — including functional descriptions like "what does the evidence say about [medical topic]", "what do we know about [medical topic]", "what does the science say about [medical topic]", "what have studies found on [medical topic]", "summarize the research on [medical topic]", "go through all the studies on [treatment/condition]", "combine the results across trials", "find gaps in the literature on [medical topic]", "pull together the evidence on [medical topic]", "what's been published on [medical topic]", "pool/synthesize the estimates across studies", "run a pooled analysis on [medical topic]", "pooled data from multiple trials", or "revue de la littérature / revue systématique / méta-analyse / synthèse des preuves / état de l'art / état des connaissances / guide de pratique clinique / passer en revue les études sur / aperçu de ce qui a été publié sur / résumer les études sur / faire le point sur les publications sur / qu'est-ce qu'on sait sur [sujet médical] / tout ce qui existe comme études sur". Also triggers for informal variants: "lit review on [medical topic]". Searches PubMed/MEDLINE, Semantic Scholar, and OpenAlex (optionally ClinicalTrials.gov and medRxiv) following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations. Do NOT trigger for: non-medical domains (software engineering, education, environmental science, social sciences, etc.) even if using review methodology vocabulary, formatting existing manuscripts, writing BibTeX cleanup scripts, drawing PRISMA diagrams in code, explaining database search methodology, explaining PRISMA/Cochrane/GRADE methodology without conducting a review, or brief factual summaries on medical topics when the user explicitly declines a structured review.
-allowed-tools: Read Write Edit Bash WebFetch WebSearch mcp__litrev-mcp__citation_chain mcp__litrev-mcp__verify_dois mcp__litrev-mcp__generate_bibliography mcp__litrev-mcp__audit_claims
+allowed-tools: Read Write Edit Bash Skill Agent WebFetch WebSearch mcp__litrev-mcp__citation_chain mcp__litrev-mcp__deduplicate_results mcp__litrev-mcp__verify_dois mcp__litrev-mcp__generate_bibliography mcp__litrev-mcp__audit_claims mcp__litrev-mcp__validate_gate
 ---
 
 # Literature Review — Orchestrator
@@ -110,6 +110,8 @@ This is the only phase handled directly by the orchestrator (not delegated).
 
 ### === GATE 1 ===
 
+Run MCP tool `validate_gate(gate="1", review_dir="review/")`. All checks must PASS before proceeding.
+
 Print a protocol summary with: research question, framework (with each component filled), review type, time period, databases (>= 3, or >= 2 for rapid), search concepts with synonyms, inclusion criteria, exclusion criteria. Every field must be filled before proceeding.
 
 **Persist the protocol**: write the protocol summary to `review/protocol.md` so it survives session boundaries. On session resumption, read `review/protocol.md` to restore the research question, framework, review type, criteria, and search strategy.
@@ -120,12 +122,9 @@ Invoke `litrev-search` in orchestrated mode. The protocol from Phase 1 provides 
 
 ### === GATE 2 ===
 
-Verify these files exist and are non-empty:
-- `review/combined_results.json` — at least 1 article
-- `review/search_results.md` — contains a results table
-- `review/search_log.md` — documents search attempts
+Run MCP tool `validate_gate(gate="2", review_dir="review/")`. All checks must PASS before proceeding.
 
-If any is missing, the search phase did not complete — diagnose and re-invoke `litrev-search`.
+If any check fails, the search phase did not complete — diagnose and re-invoke `litrev-search`.
 
 ## Phase 3a: Screening
 
@@ -133,11 +132,9 @@ Invoke `litrev-screen` in orchestrated mode. Pass the inclusion/exclusion criter
 
 ### === GATE 3a ===
 
-Verify:
-- `review/screening_log.md` exists with all applicable steps marked `Status: COMPLETE`
-- `review/included_indices.json` exists and is a valid JSON array
-- PRISMA counts are printed. For systematic/meta-analysis/scoping: identified → deduplicated → title-screened → abstract-screened → included. For narrative/rapid (simplified): identified → deduplicated → screened → included
-- Counts are arithmetically consistent
+Run MCP tool `validate_gate(gate="3a", review_dir="review/")`. All checks must PASS before proceeding.
+
+Print PRISMA counts. For systematic/meta-analysis/scoping: identified -> deduplicated -> title-screened -> abstract-screened -> included. For narrative/rapid (simplified): identified -> deduplicated -> screened -> included.
 
 Zero-result detection: check `review/included_indices.json` — if empty array `[]`, screening returned zero articles. Do not proceed to Phase 3b — discuss with the user (broaden criteria, expand search, or report absence of evidence).
 
@@ -164,7 +161,7 @@ Seed selection:
 
 Call the MCP tool `citation_chain` with:
 - `results_path`: `"review/combined_results.json"`
-- `seed_rows`: list of 0-based seed indices
+- `indices`: list of 0-based seed indices
 - `direction`: `"both"` (systematic/meta-analysis/scoping), `"backward"` (narrative), or `"forward"` (rapid)
 - `sources`: `"s2,openalex"`
 - `output_path`: `"review/chaining_candidates.json"`
@@ -210,20 +207,16 @@ Status: COMPLETE
 ```
 
 Then merge retained candidates:
-1. Append retained candidates to `review/combined_results.json` (new indices start at previous array length)
+1. Append retained candidates to `review/combined_results.json`
 2. Call MCP `deduplicate_results` on `review/combined_results.json` as a safety net (should be a no-op if `citation_chain` deduplication worked correctly, but guards against index errors during manual merge)
-3. Add new indices to `review/included_indices.json`
+3. Add new indices to `review/included_indices.json` (indices are the positions of appended candidates *after* dedup — re-identify them by DOI/title match, not by pre-dedup offset)
 4. Overwrite `review/chaining_candidates.json` with only the retained candidates (the raw MCP output is no longer needed — screening decisions are documented in `screening_log.md`)
 
 Print a snowballing summary: seeds → raw candidates → after dedup → screened → retained/excluded with top exclusion reasons.
 
 ### === GATE 3b ===
 
-Verify:
-- `review/screening_log.md` contains a `## Citation Snowballing` section with `Status: COMPLETE`
-- If candidates were merged, `review/included_indices.json` has been updated
-
-If snowballing was skipped, mark GATE 3b as N/A and proceed.
+Run MCP tool `validate_gate(gate="3b", review_dir="review/")`. If snowballing was intentionally skipped (status FAIL with "N/A if intentionally skipped"), mark GATE 3b as N/A and proceed. Otherwise all checks must PASS.
 
 ## Phase 4: Extraction
 
@@ -231,9 +224,9 @@ Invoke `litrev-extract` in orchestrated mode.
 
 ### === GATE 4 ===
 
-Verify:
-- `review/extracted_claims.json` exists and is valid JSON with at least 1 article in `articles`
-- At least one article has a non-empty `semantic_claims` array (confirms LLM enrichment ran, not just regex extraction)
+Run MCP tool `validate_gate(gate="4", review_dir="review/")`. All checks must PASS before proceeding.
+
+Additionally verify:
 - Summary table was printed with columns: Author (Year), Design, N, Quality, Key Finding, Theme(s)
 - Quality ratings and theme assignments are present (quality may be null for scoping reviews). See `litrev-extract` for quality assessment details per review type
 - `stats` counts match actual array lengths (see litrev-extract Step 7)
@@ -244,12 +237,12 @@ Invoke `litrev-synthesize` in orchestrated mode.
 
 ### === GATE 5 ===
 
+Run MCP tool `validate_gate(gate="5", review_dir="review/")`. All checks must PASS before proceeding.
+
 The `<topic>` slug is determined by `litrev-synthesize`. The orchestrator detects existing review files by glob pattern `review/*_review.md`.
 
-Verify `review/<topic>_review.md` exists and contains:
-- YAML header declaring `bibliography: references.bib` (the file itself is created in Phase 6 — do not check for its existence here)
-- Introduction, Methodology, Results (organized by themes), Discussion, Conclusions
-- At least one `[@` Pandoc citation
+Additionally verify:
+- YAML header declares `bibliography: references.bib` (the file itself is created in Phase 6 — do not check for its existence here)
 - A `bibtex` fenced code block with draft reference entries (consumed by MCP `generate_bibliography` in Phase 6 to produce the authoritative `references.bib`)
 
 ## Phase 6: Verification
@@ -300,11 +293,9 @@ After corrections, re-run `audit_claims`. Print Gate 6c checkpoint: total claims
 
 ### === GATE 6 ===
 
-Verify:
-- `review/references.bib` exists with at least 1 entry
-- `review/claims_audit.json` exists
-- `review/<topic>_review_citation_report.json` exists
-- Verification summary was printed (DOIs verified/failed, claims verified/unverified)
+Run MCP tool `validate_gate(gate="6", review_dir="review/")`. All checks must PASS before proceeding.
+
+Additionally verify that the verification summary was printed (DOIs verified/failed, claims verified/unverified).
 
 ## Phase 7: Final Quality Check
 
@@ -314,8 +305,8 @@ Corrective actions by item:
 - Items 1-3: re-run the relevant MCP tool (`verify_dois`, `generate_bibliography`, or `audit_claims`)
 - Item 4: edit `review/<topic>_review.md` directly (fix citation syntax)
 - Items 5-7: edit `review/<topic>_review.md` directly (add missing sections)
-- Item 8: re-invoke `litrev-synthesize` (restructure results)
-- Item 9: re-invoke `litrev-extract` (redo quality assessment)
+- Item 8: re-invoke `litrev-synthesize` (restructure results), then re-run Phase 6 (verify_dois + generate_bibliography + audit_claims) since the review document changed
+- Item 9: re-invoke `litrev-extract` (redo quality assessment), then re-run audit_claims since extracted_claims.json changed
 - Item 10: edit `review/<topic>_review.md` directly (add limitations)
 
 ```
@@ -386,10 +377,9 @@ Create or update `review/DEFERRED.md` with all DEFERRED findings:
 
 ### === GATE 8 ===
 
-GATE 8 = PASS when ALL of the following are true:
-1. `review/audit_fidelity.md` and `review/audit_methodology.md` exist
-2. Both walkthroughs completed (all findings have a decision)
-3. Zero CRITICAL findings with status other than ACCEPTED
+Run MCP tool `validate_gate(gate="8", review_dir="review/")`. All checks must PASS before proceeding.
+
+Additionally verify:
 4. Every MAJOR finding has an explicit status (ACCEPTED, NOTED, or DEFERRED with justification)
 5. If any findings were DEFERRED, `review/DEFERRED.md` exists
 
@@ -459,7 +449,7 @@ Compute all metrics from `review/` files and conversation context. Use the follo
 
 | Phase | Duration | Notes |
 |-------|----------|-------|
-<approximate duration per phase, derived from file modification timestamps in review/>
+<approximate duration per phase, derived from conversation timestamps>
 
 ## Output Files
 
@@ -483,7 +473,7 @@ Populate each section from:
 - **User Decision Points**: from conversation context (decisions where the user chose between options)
 - **Corrections**: from walkthrough decisions in Phase 8
 - **MCP Tool Issues**: from any tool errors encountered during the pipeline
-- **Timing**: approximate durations from file modification timestamps (`ls -la --time=ctime review/` or from conversation timestamps)
+- **Timing**: approximate durations from conversation timestamps (message creation times between phase boundaries). File timestamps are unreliable — files updated across multiple phases reflect only the last write
 - **Output Files**: `ls -la review/`
 - **Run-Specific Notes**: from conversation context — anomalous observations, bottlenecks, notable user decisions
 
@@ -507,11 +497,11 @@ Each sub-skill handles its own adaptations internally. The orchestrator's role i
 
 | Review Type | Databases | Screening | Snowballing | Quality | PRISMA |
 |-------------|-----------|-----------|-------------|---------|--------|
-| Systematic | >= 3 | Title + Abstract + Full-text | Recommended (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
-| Meta-analysis | >= 3 | Title + Abstract + Full-text | Recommended (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
-| Scoping | >= 3 | Title + Abstract + Optional FT | Recommended (both) | Optional (PRISMA-ScR) | PRISMA-ScR |
-| Narrative | >= 2 | Title + Abstract + Optional FT | Optional (backward) | Simplified | Simplified |
-| Rapid | >= 2 | Combined title/abstract | Optional (forward, cap 5) | Simplified | Simplified |
+| Systematic | >= 3 | Title + Abstract + Full-text | Automatic (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
+| Meta-analysis | >= 3 | Title + Abstract + Full-text | Automatic (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
+| Scoping | >= 3 | Title + Abstract + Optional FT | User opt-in (both) | Optional (PRISMA-ScR) | PRISMA-ScR |
+| Narrative | >= 2 | Title + Abstract + Optional FT | User opt-in (backward) | Simplified | Simplified |
+| Rapid | >= 2 | Combined title/abstract | User opt-in (forward, cap 5) | Simplified | Simplified |
 
 Gate adjustments by review type:
 - **Gate 3b**: N/A when snowballing is skipped
@@ -530,7 +520,7 @@ When `review/` already contains files, reconstruct the pipeline state:
 | `search_results.md` + `search_log.md` | Gate 2 passed |
 | `screening_log.md` (check for `Status: COMPLETE` on each section) | Gate 3a progress |
 | `included_indices.json` | Gate 3a passed |
-| `chaining_candidates.json` (without `## Citation Snowballing` + `Status: COMPLETE` in screening_log) | Phase 3b in progress — screen candidates in this file (Step 3b.3), do not re-run `citation_chain` |
+| `chaining_candidates.json` (without `## Citation Snowballing` + `Status: COMPLETE` in screening_log) | Phase 3b in progress — verify that `chaining_candidates.json` seed indices match current `included_indices.json` (compare the `seed_indices` field in the file header, if present, against the current included set). If they diverge, delete `chaining_candidates.json` and re-run `citation_chain`. Otherwise screen candidates in this file (Step 3b.3), do not re-run `citation_chain` |
 | `screening_log.md` with `## Citation Snowballing` + `Status: COMPLETE` | Gate 3b passed |
 | `extracted_claims.json` | Gate 4 passed |
 | `*_review.md` (glob `review/*_review.md`) | Gate 5 in progress or passed (check for all sections). If missing required sections, re-invoke `litrev-synthesize` — it detects existing files and resumes. If multiple files match, ask the user which to use. |

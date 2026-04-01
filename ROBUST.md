@@ -10,12 +10,13 @@ Plan d'amélioration de la robustesse du skill litrev et de ses composants.
 
 | Composant | Reviewer | Findings | Accepted | FP rate | Rapport |
 |-----------|----------|----------|----------|---------|---------|
-| litrev-mcp | `/mcp-adversary` | 12 | 3 | 58% | `REVIEW.md` |
-| litrev-search | `/skill-adversary` | 16 | 6 | 63% | `REVIEW_SEARCH.md` |
-| litrev-screen | `/skill-adversary` | 13 | 6 | 31% | `REVIEW_SCREEN.md` |
-| litrev-extract | `/skill-adversary` | 12 | 4 | 42% | `REVIEW_EXTRACT.md` |
-| litrev-synthesize | `/skill-adversary` | 11 | 4 | 45% | `REVIEW_SYNTHESIZE.md` |
-| **Total** | | **64** | **23** | **47%** | |
+| litrev-mcp | `/mcp-adversary` | 12 | 3 | 58% | (rapport archivé, session antérieure) |
+| litrev-search | `/skill-adversary` | 16 | 6 | 63% | (rapport archivé, session antérieure) |
+| litrev-screen | `/skill-adversary` | 13 | 6 | 31% | (rapport archivé, session antérieure) |
+| litrev-extract | `/skill-adversary` | 12 | 4 | 42% | (rapport archivé, session antérieure) |
+| litrev-synthesize | `/skill-adversary` | 11 | 4 | 45% | (rapport archivé, session antérieure) |
+| litrev (orchestrateur) | `/skill-adversary` | 11 | 3 | 36% | `REVIEW.md` |
+| **Total** | | **75** | **26** | **44%** | |
 
 ### Patterns corrigés
 
@@ -29,11 +30,11 @@ Plan d'amélioration de la robustesse du skill litrev et de ses composants.
 
 | Action | Statut | Note |
 |--------|--------|------|
-| `/skill-adversary` sur litrev (orchestrateur) | Différé | Sera plus productif après un test terrain (Layer 2) |
+| `/skill-adversary` sur litrev (orchestrateur) | **Fait** (2026-04-01) | 11 findings, 3 accepted (2 HIGH allowed-tools, 1 MEDIUM Phase 7 downstream), FP 36% |
 | `/critical-code-reviewer` sur litrev-mcp/src/ | Non fait | Optionnel — les 3 bugs trouvés par mcp-adversary étaient les plus impactants |
-| `/full-review` intégration | Non fait | À faire après orchestrateur |
-| `/blindspot-review` sur agents/audit_* | Non fait | À faire après orchestrateur |
-| Fixtures de test Phase 4 + Phase 5 | Non fait | Prochaine étape — cf. DEFERRED.md |
+| `/full-review` intégration | Non fait | Prochaine étape — orchestrateur terminé |
+| `/blindspot-review` sur agents/audit_* | Non fait | Prochaine étape — orchestrateur terminé |
+| ~~Fixtures de test Phase 4 + Phase 5~~ | **Fait** | cf. DEFERRED.md |
 
 ### Observations sur les reviewers
 
@@ -65,7 +66,7 @@ Scripts qui valident les outputs après chaque phase. Pas contournables, pas de 
 | Gate 8 | `audit_fidelity.md`, `audit_methodology.md` | Existent, walkthroughs complétés, 0 CRITICAL non résolu |
 | Gate 9 | `pipeline_log.md` | Existe, contient Funnel Metrics + Gate Log + Run-Specific Notes |
 
-Implémentation possible : scripts bash, MCP tool dédié (`validate_gate`), ou hook post-phase.
+**Statut : Implémenté le 2026-04-01.** MCP tool `validate_gate(gate, review_dir)` dans litrev-mcp. 10 gates, 26 tests unitaires. SKILL.md mis a jour pour appeler `validate_gate` a chaque gate.
 
 ### Couche 2 — Feedback loop par phase (apprentissage)
 
@@ -110,8 +111,8 @@ Réserver aux revues systematic/meta-analysis. Pas nécessaire pour narrative/ra
 | 3 | Fixtures de test Phase 4 + Phase 5 | Moyen | Filet de sécurité | **Fait** (2026-04-01) : 12 articles P4, 8 articles/22 claims P5, evals 4+5 dans evals.json |
 | 4 | Test terrain (revue réelle) + feedback Phase 8 | Moyen | Haut — patterns réels | **Fait** (2026-04-01, scapulalgie scoping) |
 | 4b | Corriger bugs MCP (extract_claims_regex, audit_claims, generate_bibliography) | Moyen | Haut — bloque les evals | **Fait** (2026-04-01) : path resolution, French thousands, title cross-verification |
-| 5 | `/skill-adversary` sur orchestrateur litrev | Faible | Moyen — contextualisé par terrain | Prochaine étape |
-| 6 | Couche 1 gates mécaniques | Moyen | Haut — erreurs détectées tôt | À faire |
+| 5 | `/skill-adversary` sur orchestrateur litrev | Faible | Moyen — contextualisé par terrain | **Fait** (2026-04-01) : 11 findings, 3 accepted, FP 36%. Rapport : `REVIEW.md` |
+| 6 | Couche 1 gates mécaniques | Moyen | Haut — erreurs détectées tôt | Prochaine étape |
 | 7 | Couche 2 feedback loop systématisé | Faible | Haut (cumulatif) | **Fait** (2026-04-01, Step 9b dans SKILL.md) |
 | 8 | `/full-review` intégration | Faible | Moyen — inter-composants | Après #5 |
 | 9 | Couche 3 micro-audits | Élevé | Haut mais cher en tokens | Optionnel |

@@ -67,9 +67,9 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 |------|:-:|---|---|---|
 | Systematic | 3 | Automatic (both directions) | Full (RoB/GRADE) | PRISMA 2020 |
 | Meta-analysis | 3 | Automatic (both directions) | Full (RoB/GRADE) | PRISMA 2020 |
-| Scoping | 3 | Suggested (both directions) | Optional (PRISMA-ScR) | PRISMA-ScR |
-| Narrative | 2 | Suggested (backward only) | Simplified | Simplified |
-| Rapid | 2 | Suggested (forward, cap 5 seeds) | Simplified | Simplified |
+| Scoping | 3 | User opt-in (both directions) | Optional (PRISMA-ScR) | PRISMA-ScR |
+| Narrative | 2 | User opt-in (backward only) | Simplified | Simplified |
+| Rapid | 2 | User opt-in (forward, cap 5 seeds) | Simplified | Simplified |
 
 ## Installation
 
@@ -187,4 +187,4 @@ pandoc <topic>_review.md --citeproc --bibliography=references.bib --csl=vancouve
 
 ## Example
 
-See [example/](example/) for a complete end-to-end run (all 8 phases including double audit with walkthrough).
+See [example_v3/](example_v3/) for a complete end-to-end run (all 9 phases including double audit with walkthrough).

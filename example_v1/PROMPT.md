@@ -19,3 +19,5 @@ Cadrage :
 
 Contexte projet : voir CONTEXT_SUMMARY.md §§ "Contexte et enjeux"
 et "Population étudiée" uniquement.
+
+Rédige la synthèse en français.

@@ -64,7 +64,7 @@ Problèmes identifiés :
 │   │   ├── snowball.py           # citation_chain
 │   │   └── verify.py             # verify_dois, generate_bibliography, audit_claims
 │   └── lib/
-│       ├── http.py               # httpx client, NCBI/CrossRef/S2 rate limiting, retry
+│       ├── http.py               # httpx clients (NCBI/CrossRef/S2/OpenAlex), rate limiting, retry, env_tips
 │       ├── bibtex.py             # BibTeX key management, DOI extraction, entry building
 │       ├── patterns.py           # regex claim extraction (stats, numbers, percentages)
 │       └── dedup.py              # deduplicate_simple + deduplicate_merge
@@ -85,10 +85,17 @@ Tests passés :
   "litrev-mcp": {
     "type": "stdio",
     "command": "/home/julien/.claude/skills/litrev-mcp/.venv/bin/python",
-    "args": ["-m", "litrev_mcp.server"]
+    "args": ["-m", "litrev_mcp.server"],
+    "env": {
+      "LITREV_EMAIL": "user@example.com",
+      "NCBI_API_KEY": "...",
+      "S2_API_KEY": "..."
+    }
   }
 }
 ```
+
+Environment variables are optional but recommended. The server works without them in degraded mode (slower rate limits, placeholder email). MCP tool responses include one-time `tips` when a variable is missing — the orchestrator skill relays these to the user and offers to configure them.
 
 ### Allègement des SKILL.md : FAIT
 
@@ -128,7 +135,7 @@ Les fichiers dans `review/` restent le contrat entre les phases :
 
 | Module | Origine | Changements lors de la migration |
 |--------|---------|--------------------------------|
-| `lib/http.py` | verify/http_utils.py (version la plus complète) | `requests` → `httpx`, `s2_throttle()` ajouté (était dans snowball), sessions globales |
+| `lib/http.py` | verify/http_utils.py (version la plus complète) | `requests` → `httpx`, dedicated clients per API (S2, OpenAlex, CrossRef), `LITREV_EMAIL`/`S2_API_KEY`/`NCBI_API_KEY` env vars, `env_tips()` for user-facing config hints |
 | `lib/bibtex.py` | verify/bibtex_keys.py | Ajout `make_bibtex_key()` et `deduplicate_keys()` (depuis extract) |
 | `lib/patterns.py` | verify/claim_patterns.py | Aucun changement (version verify était déjà la plus robuste) |
 | `lib/dedup.py` | Nouveau | Deux variantes : `deduplicate_simple` (snowball) + `deduplicate_merge` (search) |

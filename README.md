@@ -92,21 +92,26 @@ The MCP server is configured in `~/.claude/.mcp.json`:
   "litrev-mcp": {
     "type": "stdio",
     "command": "~/.claude/skills/litrev-mcp/.venv/bin/python",
-    "args": ["-m", "litrev_mcp.server"]
+    "args": ["-m", "litrev_mcp.server"],
+    "env": {
+      "LITREV_EMAIL": "you@example.com",
+      "NCBI_API_KEY": "your-key-here",
+      "S2_API_KEY": "your-key-here"
+    }
   }
 }
 ```
 
-### Optional: NCBI API key
+### Optional: environment variables
 
-PubMed queries work without authentication but are rate-limited to 3 requests/second.
-For higher throughput, set your NCBI API key:
+The litrev-mcp server works without these, but setting them improves rate limits and API compliance.
+Configure them in your MCP client `env` block or shell environment.
 
-```bash
-export NCBI_API_KEY=your_key_here
-```
-
-Get one for free at https://www.ncbi.nlm.nih.gov/account/settings/
+| Variable | Effect |
+|---|---|
+| `LITREV_EMAIL` | Your email — activates polite pool (faster rates) for NCBI, CrossRef, OpenAlex. Falls back to `NCBI_EMAIL`. |
+| `NCBI_API_KEY` | Raises PubMed rate limit from 3 to 10 req/s. Free at https://www.ncbi.nlm.nih.gov/account/settings/ |
+| `S2_API_KEY` | Raises Semantic Scholar rate limit from ~1 to 100 req/s. Free at https://www.semanticscholar.org/product/api#api-key |
 
 ## Usage
 

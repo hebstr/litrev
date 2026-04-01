@@ -1,6 +1,6 @@
 ---
 name: litrev
-context: fork
+context: main
 description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical, clinical, and health research. Also triggers for medical/health topics: state-of-the-art summaries, evidence maps, clinical practice guidelines, or requests to summarize/synthesize published studies — including functional descriptions like "what does the evidence say about [medical topic]", "what do we know about [medical topic]", "what does the science say about [medical topic]", "what have studies found on [medical topic]", "summarize the research on [medical topic]", "go through all the studies on [treatment/condition]", "combine the results across trials", "find gaps in the literature on [medical topic]", "pull together the evidence on [medical topic]", "what's been published on [medical topic]", "pool/synthesize the estimates across studies", "run a pooled analysis on [medical topic]", "pooled data from multiple trials", or "revue de la littérature / revue systématique / méta-analyse / synthèse des preuves / état de l'art / état des connaissances / guide de pratique clinique / passer en revue les études sur / aperçu de ce qui a été publié sur / résumer les études sur / faire le point sur les publications sur / qu'est-ce qu'on sait sur [sujet médical] / tout ce qui existe comme études sur". Also triggers for informal variants: "lit review on [medical topic]". Searches PubMed/MEDLINE, Semantic Scholar, and OpenAlex (optionally ClinicalTrials.gov and medRxiv) following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations. Do NOT trigger for: non-medical domains (software engineering, education, environmental science, social sciences, etc.) even if using review methodology vocabulary, formatting existing manuscripts, writing BibTeX cleanup scripts, drawing PRISMA diagrams in code, explaining database search methodology, explaining PRISMA/Cochrane/GRADE methodology without conducting a review, or brief factual summaries on medical topics when the user explicitly declines a structured review.
 allowed-tools: Read Write Edit Bash WebFetch WebSearch
 ---
@@ -82,6 +82,13 @@ mkdir -p review
 
 All output files go in `review/` under the current working directory. If `review/` already contains files, ask the user whether to resume an existing review or start fresh. When resuming, verify the topic in any existing `*_review.md` matches the current request — if mismatch, ask fresh-or-different-directory. Starting fresh requires explicit user confirmation, then: `rm -rf review && mkdir -p review`.
 
+### MCP tool tips
+
+When any MCP tool response contains a `"tips"` field, relay **one tip at a time** to the user and offer to configure it.
+Example: "I notice Semantic Scholar API key isn't configured — this slows down citation chaining significantly. You can get a free key at [link]. Want me to set it up? Just paste the key and I'll add it to your config."
+If the user provides the value, read `~/.claude/.mcp.json`, add or update the variable in the `litrev-mcp` server's `env` block, and write the file back. Then tell the user to restart Claude Code for the change to take effect.
+Do not prompt about the same variable twice in a session.
+
 ## Phase 1: Planning and Scoping
 
 This is the only phase handled directly by the orchestrator (not delegated).
@@ -135,6 +142,8 @@ Zero-result detection: check `review/included_indices.json` — if empty array `
 If the user chooses to report absence of evidence: skip Phases 3b, 4, and 6. Invoke `litrev-synthesize` (Phase 5) with the instruction to produce a short review documenting the null result — search strategy, screening outcome, and conclusion that no eligible studies were found. In Phase 7, mark items 1-4, 8, and 9 as N/A (no citations, no bibliography, no claims, no thematic organization needed).
 
 If fewer than 5 articles are included, warn the user that the evidence base is thin before proceeding.
+
+If more than 100 articles are included, warn the user that extraction and synthesis will be lengthy and may require multiple sessions. Suggest narrowing inclusion criteria or switching to a scoping/rapid review type to reduce the corpus.
 
 ## Phase 3b: Snowballing (optional)
 
@@ -200,8 +209,9 @@ Status: COMPLETE
 
 Then merge retained candidates:
 1. Append retained candidates to `review/combined_results.json` (new indices start at previous array length)
-2. Add new indices to `review/included_indices.json`
-3. Overwrite `review/chaining_candidates.json` with only the retained candidates (the raw MCP output is no longer needed — screening decisions are documented in `screening_log.md`)
+2. Call MCP `deduplicate_results` on `review/combined_results.json` as a safety net (should be a no-op if `citation_chain` deduplication worked correctly, but guards against index errors during manual merge)
+3. Add new indices to `review/included_indices.json`
+4. Overwrite `review/chaining_candidates.json` with only the retained candidates (the raw MCP output is no longer needed — screening decisions are documented in `screening_log.md`)
 
 Print a snowballing summary: seeds → raw candidates → after dedup → screened → retained/excluded with top exclusion reasons.
 
@@ -221,8 +231,10 @@ Invoke `litrev-extract` in orchestrated mode.
 
 Verify:
 - `review/extracted_claims.json` exists and is valid JSON with at least 1 article in `articles`
+- At least one article has a non-empty `semantic_claims` array (confirms LLM enrichment ran, not just regex extraction)
 - Summary table was printed with columns: Author (Year), Design, N, Quality, Key Finding, Theme(s)
-- Quality ratings and theme assignments are present (quality may be null for scoping reviews). See `litrev-extract` for quality assessment details per review type.
+- Quality ratings and theme assignments are present (quality may be null for scoping reviews). See `litrev-extract` for quality assessment details per review type
+- `stats` counts match actual array lengths (see litrev-extract Step 7)
 
 ## Phase 5: Synthesis
 
@@ -412,6 +424,7 @@ When `review/` already contains files, reconstruct the pipeline state:
 | `search_results.md` + `search_log.md` | Gate 2 passed |
 | `screening_log.md` (check for `Status: COMPLETE` on each section) | Gate 3a progress |
 | `included_indices.json` | Gate 3a passed |
+| `chaining_candidates.json` (without `## Citation Snowballing` + `Status: COMPLETE` in screening_log) | Phase 3b in progress — screen candidates in this file (Step 3b.3), do not re-run `citation_chain` |
 | `screening_log.md` with `## Citation Snowballing` + `Status: COMPLETE` | Gate 3b passed |
 | `extracted_claims.json` | Gate 4 passed |
 | `*_review.md` (glob `review/*_review.md`) | Gate 5 in progress or passed (check for all sections). If missing required sections, re-invoke `litrev-synthesize` — it detects existing files and resumes. If multiple files match, ask the user which to use. |

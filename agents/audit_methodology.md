@@ -103,7 +103,7 @@ Brief overall assessment (2-3 sentences).
 
 ## Findings
 
-### [F-B01] Short description — severity
+### [F-MET-01] Short description — severity
 
 **Detail**: What is wrong, with specific references to sections, line numbers, documents.
 
@@ -117,7 +117,7 @@ Brief overall assessment (2-3 sentences).
 
 | Severity | Count | Findings |
 |----------|-------|----------|
-| Critical | N | F-B01, ... |
+| Critical | N | F-MET-01, ... |
 | Major | N | ... |
 | Minor | N | ... |
 ```

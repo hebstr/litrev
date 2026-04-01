@@ -26,7 +26,7 @@ Sequence sub-skills and MCP tools into a complete literature review pipeline. Pl
 ## Pipeline
 
 ```
-Planning → litrev-search → litrev-screen → Snowballing (MCP, optional) → litrev-extract → litrev-synthesize → Verification (MCP) → Final QC → Double Audit + Walkthrough
+Planning → litrev-search → litrev-screen → Snowballing (MCP, optional) → litrev-extract → litrev-synthesize → Verification (MCP) → Final QC → Double Audit + Walkthrough → Pipeline Log
 ```
 
 ## Sub-skills and MCP tools
@@ -72,6 +72,8 @@ If resuming a previous session, check `review/` for existing files and reconstru
   - [ ] GATE 7: quality checklist printed, all items PASS
 - [ ] Phase 8 Double Audit + Review Walkthrough
   - [ ] GATE 8: both audits complete, walkthroughs done, no unresolved critical, all major have status
+- [ ] Phase 9 Pipeline Log (automatic, no gate)
+  - [ ] review/pipeline_log.md written
 ```
 
 ## Setup
@@ -395,6 +397,110 @@ MINOR findings do not block GATE 8 — they may be left without action.
 
 If GATE 8 fails on criterion 3 (unresolved critical): the user must address the critical finding before proceeding. Offer to apply the recommended fix.
 
+## Phase 9: Pipeline Log
+
+Automatic, no gate. Write `review/pipeline_log.md` summarizing the entire pipeline run. This file documents how the review was produced and serves as a benchmark for future runs.
+
+Compute all metrics from `review/` files and conversation context. Use the following template:
+
+```markdown
+# Pipeline Log — <Topic>
+
+- **Date**: YYYY-MM-DD
+- **Topic**: <one-line description>
+- **Review type**: <type> (<guideline>)
+- **Framework**: <PEO/PICO/SPIDER>
+- **Working directory**: <path>
+
+## Funnel Metrics
+
+| Stage | N | Ratio |
+|-------|---|-------|
+| Identified | <from combined_results.json length> | — |
+| After title screening | <from screening_log.md> | % |
+| After abstract screening | <from screening_log.md> | % |
+| Included | <from included_indices.json length> | % |
+| With claims | <from extracted_claims.json> | % of included |
+| Quantitative claims | <from extracted_claims.json stats> | per article |
+| Semantic claims | <from extracted_claims.json stats> | per article |
+| Articles cited in synthesis | <count unique [@Key] in review> | % of included |
+| Themes | <from extracted_claims.json> | — |
+
+## Gate Log
+
+| Gate | Status | Notes |
+|------|--------|-------|
+<one row per gate, with PASSED/FAILED/N-A and any notable issues>
+
+## User Decision Points
+
+| Point | Options | Choice | Rationale |
+|-------|---------|--------|-----------|
+<decisions where the user was asked to choose>
+
+## Corrections Applied
+
+### Critical
+<table: finding, issue, fix>
+
+### Major
+<table: finding, issue, fix>
+
+### Minor
+<count accepted, count noted, key fixes>
+
+## MCP Tool Issues
+
+| Tool | Issue | Severity | Workaround |
+|------|-------|----------|------------|
+<any MCP tool failures or unexpected behavior>
+
+## Timing
+
+| Phase | Duration | Notes |
+|-------|----------|-------|
+<approximate duration per phase, derived from file modification timestamps in review/>
+
+## Output Files
+
+| File | Size | Content |
+|------|------|---------|
+<ls -la review/ formatted as table>
+
+## Run-Specific Notes
+
+Factual observations specific to this run — anomalous funnel ratios, unexpected behaviors, or notable decisions. Not generalized recommendations (those belong in memory via Step 9b).
+
+Categories:
+- Anomalous ratios (e.g., "only 4.8% of included articles cited in synthesis")
+- Phase bottlenecks (e.g., "extraction took 20 min, synthesis hit rate limit")
+- User decisions that could become defaults in future runs
+```
+
+Populate each section from:
+- **Funnel Metrics**: read `combined_results.json` (length), `included_indices.json` (length), `extracted_claims.json` (stats), count `[@` citations in `*_review.md`
+- **Gate Log**: from the execution tracker maintained during the conversation
+- **User Decision Points**: from conversation context (decisions where the user chose between options)
+- **Corrections**: from walkthrough decisions in Phase 8
+- **MCP Tool Issues**: from any tool errors encountered during the pipeline
+- **Timing**: approximate durations from file modification timestamps (`ls -la --time=ctime review/` or from conversation timestamps)
+- **Output Files**: `ls -la review/`
+- **Run-Specific Notes**: from conversation context — anomalous observations, bottlenecks, notable user decisions
+
+### Step 9b — Update memory with pipeline learnings
+
+After writing `pipeline_log.md`, automatically check whether the run produced observations that are **not already documented** in the litrev memory files. Read these files to check for duplicates:
+- `~/.claude/projects/-home-julien--claude-skills-litrev/memory/feedback_litrev_extraction_patterns.md`
+- `~/.claude/projects/-home-julien--claude-skills-litrev/memory/project_mcp_bugs_*.md`
+
+**New MCP bugs**: if the MCP Tool Issues section of `pipeline_log.md` contains a bug not already documented in `project_mcp_bugs_*.md`, append it to the existing file or create a new one if no file exists.
+
+**New quality patterns**: if the Corrections section reveals a recurring synthesis quality issue (DOI fabrication, causal language, missing confrontation, undocumented deviation, etc.) not already in `feedback_litrev_extraction_patterns.md`, append the pattern using the existing format (issue description, **Why:**, **How to apply:**).
+
+**Do not duplicate**: if a bug or pattern is already covered by an existing entry, skip it — even if the specific instance is slightly different. Only add genuinely new patterns that will recur in future runs.
+
+**Do not ask**: persist directly and report what was written (e.g., "Memory updated: 1 new MCP bug (audit_claims timeout), 1 new quality pattern (geographic coverage gap)" or "No new patterns — all issues already documented").
+
 ## Review Type Routing
 
 Each sub-skill handles its own adaptations internally. The orchestrator's role is to route correctly:
@@ -433,6 +539,7 @@ When `review/` already contains files, reconstruct the pipeline state:
 | `audit_fidelity.md` | Gate 8 fidelity audit complete (check for walkthrough decisions) |
 | `audit_methodology.md` | Gate 8 methodology audit complete (check for walkthrough decisions) |
 | `DEFERRED.md` | Gate 8 walkthroughs done (deferred findings recorded) |
+| `pipeline_log.md` | Phase 9 complete (pipeline fully documented) |
 
 Resume from the first incomplete gate. Tell the user which phases are already done.
 
@@ -462,6 +569,7 @@ If a sub-skill fails:
 | Agent `audit_fidelity` | `extracted_claims.json`, `claims_audit.json`, `references.bib`, `combined_results.json`, `protocol.md` | `audit_fidelity.md` |
 | Agent `audit_methodology` | `<topic>_review.md`, `protocol.md`, `extracted_claims.json`, `screening_log.md` | `audit_methodology.md` |
 | Orchestrator (8.4 inline) | Walkthrough decisions | `DEFERRED.md` |
+| Orchestrator (Phase 9) | All `review/` files, conversation context | `pipeline_log.md` |
 
 ## Output Files
 
@@ -480,3 +588,4 @@ If a sub-skill fails:
 - `review/audit_fidelity.md` — factual audit report (claims vs sources)
 - `review/audit_methodology.md` — structural audit report (synthesis critique)
 - `review/DEFERRED.md` — deferred findings with justifications (created only if deferrals exist)
+- `review/pipeline_log.md` — pipeline run report (funnel metrics, gate log, corrections, MCP issues)

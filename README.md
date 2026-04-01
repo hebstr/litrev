@@ -45,7 +45,7 @@ litrev-mcp/                 ← MCP server: 8 deterministic tools
 ### Pipeline flow
 
 ```
-Planning → Search → Screen → Snowball (optional) → Extract → Synthesize → Verify → Final QC → Double Audit + Walkthrough
+Planning → Search → Screen → Snowball (optional) → Extract → Synthesize → Verify → Final QC → Double Audit + Walkthrough → Pipeline Log
 ```
 
 | Phase | Delegate | What it does |
@@ -59,6 +59,7 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 | 6 | MCP `verify_dois` + `generate_bibliography` + `audit_claims` | DOI validation, BibTeX generation, claims audit |
 | 7 | `litrev` | Final quality checklist (10 items) |
 | 8 | Agent `audit_fidelity` + Agent `audit_methodology` + `/review-walkthrough` | Fidelity + methodology audit, interactive walkthrough |
+| 9 | `litrev` | Pipeline log (funnel metrics, gate log, corrections, MCP issues); automatic memory update with new quality patterns and MCP bugs |
 
 ### Review types
 
@@ -175,6 +176,7 @@ All files are written to `review/` in the current working directory:
 | `audit_fidelity.md` | Fidelity audit report (claims vs sources) |
 | `audit_methodology.md` | Methodology audit report (synthesis critique) |
 | `DEFERRED.md` | Deferred findings with justifications (if any) |
+| `pipeline_log.md` | Pipeline run report (funnel metrics, gate log, corrections, MCP issues) |
 
 The review document can be compiled to PDF, DOCX, or HTML with Pandoc:
 

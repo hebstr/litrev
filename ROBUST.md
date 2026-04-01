@@ -63,6 +63,7 @@ Scripts qui valident les outputs après chaque phase. Pas contournables, pas de 
 | Gate 6 | `references.bib`, `claims_audit.json`, `*_citation_report.json` | Existent, BibTeX parseable |
 | Gate 7 | Checklist items | Tous PASS ou UNRESOLVABLE documenté |
 | Gate 8 | `audit_fidelity.md`, `audit_methodology.md` | Existent, walkthroughs complétés, 0 CRITICAL non résolu |
+| Gate 9 | `pipeline_log.md` | Existe, contient Funnel Metrics + Gate Log + Run-Specific Notes |
 
 Implémentation possible : scripts bash, MCP tool dédié (`validate_gate`), ou hook post-phase.
 
@@ -107,9 +108,9 @@ Réserver aux revues systematic/meta-analysis. Pas nécessaire pour narrative/ra
 | 1 | `/mcp-adversary` sur litrev-mcp | Faible | Haut — fondation | **Fait** (2026-04-01) |
 | 2 | `/skill-adversary` sur chaque sub-skill | Faible × 4 | Moyen — edge cases | **Fait** (2026-04-01) |
 | 3 | Evals régression post-corrections | Moyen | Filet de sécurité | À faire |
-| 4 | Test terrain (revue réelle) + feedback Phase 8 | Moyen | Haut — patterns réels | **Prochaine étape** |
+| 4 | Test terrain (revue réelle) + feedback Phase 8 | Moyen | Haut — patterns réels | **Fait** (2026-04-01, scapulalgie scoping) |
 | 5 | `/skill-adversary` sur orchestrateur litrev | Faible | Moyen — contextualisé par terrain | Après #4 |
 | 6 | Couche 1 gates mécaniques | Moyen | Haut — erreurs détectées tôt | À faire |
-| 7 | Couche 2 feedback loop systématisé | Faible | Haut (cumulatif) | À faire |
+| 7 | Couche 2 feedback loop systématisé | Faible | Haut (cumulatif) | **Fait** (2026-04-01, Step 9b dans SKILL.md) |
 | 8 | `/full-review` intégration | Faible | Moyen — inter-composants | Après #5 |
 | 9 | Couche 3 micro-audits | Élevé | Haut mais cher en tokens | Optionnel |

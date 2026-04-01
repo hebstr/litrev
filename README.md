@@ -185,4 +185,4 @@ pandoc <topic>_review.md --citeproc --bibliography=references.bib --csl=vancouve
 
 ## Example
 
-See [example_new/](example_new/) for a complete end-to-end run (all 8 phases including double audit with walkthrough).
+See [example/](example/) for a complete end-to-end run (all 8 phases including double audit with walkthrough).

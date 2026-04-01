@@ -4,67 +4,43 @@ Plan d'amélioration de la robustesse du skill litrev et de ses composants.
 
 ## 1. Revues statiques (avant utilisation)
 
-### Bottom-up — composants individuels
+**Statut : Layer 1 complétée le 2026-04-01.**
 
-Ordre : valider la fondation d'abord, puis remonter.
+### Résultats Layer 1
 
-```
-litrev-mcp          ← fondation
-  ↑
-litrev-search       ← dépend du MCP
-litrev-screen       ← dépend du MCP
-litrev-extract      ← dépend du MCP
-litrev-synthesize   ← LLM pur
-  ↑
-litrev              ← orchestrateur
-  ↑
-agents/audit_*      ← post-pipeline
-```
+| Composant | Reviewer | Findings | Accepted | FP rate | Rapport |
+|-----------|----------|----------|----------|---------|---------|
+| litrev-mcp | `/mcp-adversary` | 12 | 3 | 58% | `REVIEW.md` |
+| litrev-search | `/skill-adversary` | 16 | 6 | 63% | `REVIEW_SEARCH.md` |
+| litrev-screen | `/skill-adversary` | 13 | 6 | 31% | `REVIEW_SCREEN.md` |
+| litrev-extract | `/skill-adversary` | 12 | 4 | 42% | `REVIEW_EXTRACT.md` |
+| litrev-synthesize | `/skill-adversary` | 11 | 4 | 45% | `REVIEW_SYNTHESIZE.md` |
+| **Total** | | **64** | **23** | **47%** | |
 
-| Composant | Skill de review | Cible |
-|-----------|----------------|-------|
-| litrev-mcp (schemas, tools) | `/mcp-adversary` | Discrimination inter-tools, schemas, discoverabilité |
-| litrev-mcp (code) | `/critical-code-reviewer` | Bugs, race conditions httpx, gestion d'erreurs API |
-| Chaque sub-skill | `/skill-adversary` | Edge cases trigger, incohérences SKILL.md |
-| agents/audit_* | `/blindspot-review` | Circularité (audits dans le même repo que le code audité) |
+### Patterns corrigés
 
-### Top-down — intégration
+1. **`allowed-tools` incomplet** — trouvé dans 3/4 sous-skills + orchestrateur, corrigé partout
+2. **Résidus pré-MCP** (refs à `.py` stales) — nettoyés dans search + screen
+3. **Evals structurels sans ancrage factuel** — spot-checks de valeurs + assertions stats ajoutés (extract)
+4. **Contradictions internes** — `UNVERIFIED` vs self-check (synthesize), seuils evals incohérents (search)
+5. **Renommages paramètres MCP** — 3 mismatches API publique vs implémentation (mcp)
 
-| Skill de review | Cible |
-|----------------|-------|
-| `/full-review` | Repo litrev entier — agents par facette (architecture, interface contracts, error paths) |
+### Restant (Layer 1)
 
-### Evals — régression
+| Action | Statut | Note |
+|--------|--------|------|
+| `/skill-adversary` sur litrev (orchestrateur) | Différé | Sera plus productif après un test terrain (Layer 2) |
+| `/critical-code-reviewer` sur litrev-mcp/src/ | Non fait | Optionnel — les 3 bugs trouvés par mcp-adversary étaient les plus impactants |
+| `/full-review` intégration | Non fait | À faire après orchestrateur |
+| `/blindspot-review` sur agents/audit_* | Non fait | À faire après orchestrateur |
+| Evals régression post-corrections | Non fait | À faire avant test terrain |
 
-Après chaque cycle de corrections :
-- Relancer les evals existants (`workspace/iteration-N/`)
-- Comparer les scores avant/après
-- Si régression → la correction a cassé quelque chose
+### Observations sur les reviewers
 
-### Workflow par itération
-
-```
-Phase 1 — Bottom-up (parallélisable)
-  /skill-adversary    sur litrev-search
-  /skill-adversary    sur litrev-screen
-  /skill-adversary    sur litrev-extract
-  /skill-adversary    sur litrev-synthesize
-  /mcp-adversary      sur litrev-mcp
-  /critical-code-reviewer sur litrev-mcp/src/
-
-Phase 2 — Corrections
-  Appliquer les findings, un composant à la fois
-
-Phase 3 — Top-down
-  /full-review        sur le repo litrev
-  /blindspot-review   sur les agents d'audit
-
-Phase 4 — Régression
-  Relancer les evals, comparer avec iteration précédente
-
-Phase 5 — Orchestrateur (en dernier, dépend de tout)
-  /skill-adversary    sur litrev
-```
+- FP moyen 47% — acceptable pour du review adversarial, mais les LOW findings sont quasi toujours du bruit (0% d'acceptance)
+- skill-adversary ne connaît pas les conventions Claude Code skills (`!`command``, description longue, `$SKILL_DIR`)
+- Cross-model L1 (sonnet) a ajouté de la valeur sur le calibrage de sévérité, pas sur la détection
+- Bug identifié : review-walkthrough appelle `ouroboros_evaluate` au lieu de `ouroboros_qa` quand pas de session Ouroboros
 
 ---
 
@@ -126,12 +102,14 @@ Réserver aux revues systematic/meta-analysis. Pas nécessaire pour narrative/ra
 
 ## 3. Priorisation
 
-| Priorité | Action | Effort | Impact |
-|----------|--------|--------|--------|
-| 1 | `/mcp-adversary` sur litrev-mcp | Faible | Haut — fondation |
-| 2 | Couche 1 gates mécaniques | Moyen | Haut — erreurs détectées tôt |
-| 3 | `/skill-adversary` sur chaque sub-skill | Faible × 4 | Moyen — edge cases |
-| 4 | Couche 2 feedback loop systématisé | Faible | Haut (cumulatif) |
-| 5 | `/full-review` intégration | Faible | Moyen — inter-composants |
-| 6 | Couche 3 micro-audits | Élevé | Haut mais cher en tokens |
-| 7 | Evals itération N+1 | Moyen | Filet de sécurité |
+| Priorité | Action | Effort | Impact | Statut |
+|----------|--------|--------|--------|--------|
+| 1 | `/mcp-adversary` sur litrev-mcp | Faible | Haut — fondation | **Fait** (2026-04-01) |
+| 2 | `/skill-adversary` sur chaque sub-skill | Faible × 4 | Moyen — edge cases | **Fait** (2026-04-01) |
+| 3 | Evals régression post-corrections | Moyen | Filet de sécurité | À faire |
+| 4 | Test terrain (revue réelle) + feedback Phase 8 | Moyen | Haut — patterns réels | **Prochaine étape** |
+| 5 | `/skill-adversary` sur orchestrateur litrev | Faible | Moyen — contextualisé par terrain | Après #4 |
+| 6 | Couche 1 gates mécaniques | Moyen | Haut — erreurs détectées tôt | À faire |
+| 7 | Couche 2 feedback loop systématisé | Faible | Haut (cumulatif) | À faire |
+| 8 | `/full-review` intégration | Faible | Moyen — inter-composants | Après #5 |
+| 9 | Couche 3 micro-audits | Élevé | Haut mais cher en tokens | Optionnel |

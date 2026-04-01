@@ -33,7 +33,7 @@ Plan d'amélioration de la robustesse du skill litrev et de ses composants.
 | `/critical-code-reviewer` sur litrev-mcp/src/ | Non fait | Optionnel — les 3 bugs trouvés par mcp-adversary étaient les plus impactants |
 | `/full-review` intégration | Non fait | À faire après orchestrateur |
 | `/blindspot-review` sur agents/audit_* | Non fait | À faire après orchestrateur |
-| Evals régression post-corrections | Non fait | À faire avant test terrain |
+| Fixtures de test Phase 4 + Phase 5 | Non fait | Prochaine étape — cf. DEFERRED.md |
 
 ### Observations sur les reviewers
 
@@ -107,8 +107,9 @@ Réserver aux revues systematic/meta-analysis. Pas nécessaire pour narrative/ra
 |----------|--------|--------|--------|--------|
 | 1 | `/mcp-adversary` sur litrev-mcp | Faible | Haut — fondation | **Fait** (2026-04-01) |
 | 2 | `/skill-adversary` sur chaque sub-skill | Faible × 4 | Moyen — edge cases | **Fait** (2026-04-01) |
-| 3 | Evals régression post-corrections | Moyen | Filet de sécurité | À faire |
+| 3 | Fixtures de test Phase 4 + Phase 5 | Moyen | Filet de sécurité | À faire (cf. DEFERRED.md) |
 | 4 | Test terrain (revue réelle) + feedback Phase 8 | Moyen | Haut — patterns réels | **Fait** (2026-04-01, scapulalgie scoping) |
+| 4b | Corriger bugs MCP (extract_claims_regex, audit_claims, generate_bibliography) | Moyen | Haut — bloque les evals | À faire (cf. memory `project_mcp_bugs_2026q2.md`) |
 | 5 | `/skill-adversary` sur orchestrateur litrev | Faible | Moyen — contextualisé par terrain | Après #4 |
 | 6 | Couche 1 gates mécaniques | Moyen | Haut — erreurs détectées tôt | À faire |
 | 7 | Couche 2 feedback loop systématisé | Faible | Haut (cumulatif) | **Fait** (2026-04-01, Step 9b dans SKILL.md) |

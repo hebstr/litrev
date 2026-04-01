@@ -134,6 +134,8 @@ Revue de la littérature sur l'impact du diabète sur la chirurgie de la coiffe 
 The orchestrator triggers automatically, guides you through planning, and runs each phase sequentially.
 All output goes to `review/` in the current directory.
 
+See [PROMPT_RECOS.md](PROMPT_RECOS.md) for tips on writing effective prompts (exclusion criteria, framework, review type, grey literature).
+
 ### Individual phases (standalone)
 
 Each sub-skill can be invoked independently:

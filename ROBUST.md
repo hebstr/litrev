@@ -33,4 +33,4 @@ Lightweight agent between two phases to verify quality, not just structure. Rese
 | Search (2) | Queries cover all protocol concepts? Result ratio across DBs balanced? |
 | Screening (3) | Exclusions consistent with criteria? No obvious false negatives? |
 | Extraction (4) | Claims specific? Quality ratings justified? |
-| Synthesis (5) | Every JSON claim in the text? No fabricated claims? |
+| Synthesis (5) | Every JSON claim in the text? No fabricated claims? All PICO outcomes covered by a section? |

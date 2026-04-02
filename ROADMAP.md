@@ -4,17 +4,17 @@ Last updated: 2026-04-02
 
 ## Priority A: MCP bug fixes (pre-review) — DONE
 
-All 3 fixes implemented and tested. Ready for `/full-review`.
+All 3 fixes implemented and tested. Additional fix (A4) from /full-review.
 
-### A1. validate_gate(3a) — regex matches first "Retained" count
+### A1. validate_gate(3a) — regex matches snowball "Retained" count
 
-Gate 3a PRISMA consistency check matches the first `Retained (N)` in screening_log.md (title screening), not the final full-text count.
+Gate 3a PRISMA consistency check used `retained_matches[-1]` which could pick up the snowballing section's `### Retained` count instead of the main screening count.
 
-- **File**: `litrev-mcp/src/tools/gate.py`
-- **Fix**: match the last retained count, or look for a PRISMA summary section
-- **Workaround**: rename intermediate headers to "Passed title/abstract screen"
+- **File**: `litrev-mcp/src/litrev_mcp/tools/gates.py`
+- **Fix**: restrict regex search to text before `## Citation Snowballing` section
 - [x] Fix implemented
 - [x] Test added
+- [x] Additional fix (2026-04-02): exclude snowball region from retained count search
 
 ### A2. audit_claims — Unicode middle dots not matched
 
@@ -36,9 +36,9 @@ Abstracts with "Thirteen RCTs" flagged UNVERIFIED when review writes "13 RCTs".
 
 ---
 
-## Priority B: Synthesis quality (highest impact on review quality) — IN PROGRESS
+## Priority B: Synthesis quality (highest impact on review quality) — DONE
 
-Structural improvements to litrev-synthesize, identified by double audit. Instructions added, pending test on example_v3.
+Structural improvements to litrev-synthesize, identified by double audit. All tested on example_v3 (2026-04-02).
 
 ### B1. PICO outcome → section mapping enforcement
 
@@ -48,7 +48,7 @@ litrev-synthesize organizes by data-driven themes but does not check that each P
 - **Fix**: after synthesis, cross-check each PICO outcome against theme headings. If an outcome has no dedicated section and >5 articles with relevant claims, create one or flag
 - **Source**: F-MET-01
 - [x] Instruction added to SKILL.md (Step 5, check #8)
-- [ ] Tested on example_v3
+- [x] Tested on example_v3 (2026-04-02) — PASS, predictive factors subsection generated
 
 ### B2. Multi-source citation guard
 
@@ -58,7 +58,7 @@ litrev-synthesize combines two studies in `[@A; @B]` while reporting data from o
 - **Fix**: add instruction that each specific statistic in a dual citation must be verifiable in both cited abstracts
 - **Source**: F-FID-02
 - [x] Instruction added to SKILL.md (Step 4e, after constrained writing rule)
-- [ ] Tested on example_v3
+- [x] Tested on example_v3 (2026-04-02) — PASS
 
 ### B3. Stop generating DOIs in embedded BibTeX
 
@@ -68,7 +68,7 @@ litrev-synthesize fabricates DOIs (16/56 fabricated, 9/56 misattributed in examp
 - **Fix**: instruct synthesize to emit only PMID-based BibTeX entries. Let `generate_bibliography` resolve DOIs from PMIDs
 - **Source**: feedback_litrev_extraction_patterns.md "DOI hallucination"
 - [x] Instruction updated in SKILL.md (Step 4j + Step 5 check #9)
-- [ ] Tested on example_v3
+- [x] Tested on example_v3 (2026-04-02) — PASS, 0 DOIs in BibTeX
 
 ---
 
@@ -164,8 +164,8 @@ search_openalex ┘                              fetch_fulltext
 ## Execution sequence
 
 ```
-A (MCP fixes) ✓ → /full-review ✓ → B (synthesis quality) [instructions done, test pending] → C (search doc) → D (orchestrator) → E (new sources)
+A (MCP fixes) ✓ → B (synthesis quality) ✓ → /full-review ✓ → C (search doc) → D (orchestrator) → E (new sources)
 ```
 
-Next: test B1/B2/B3 on example_v3 (re-run /litrev-synthesize, verify guards trigger).
+A+B done, /full-review done (2026-04-02). Next: C (search doc improvements).
 Do not start E before B+C are stable — new sources compound existing quality issues.

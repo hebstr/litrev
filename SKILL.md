@@ -252,6 +252,7 @@ The `<topic>` slug is determined by `litrev-synthesize`. The orchestrator detect
 Additionally verify:
 - YAML header declares `bibliography: references.bib` (the file itself is created in Phase 6 — do not check for its existence here)
 - A `bibtex` fenced code block with draft reference entries (consumed by MCP `generate_bibliography` in Phase 6 to produce the authoritative `references.bib`)
+- litrev-synthesize self-checks 1–9 all reported PASS (including blocking check #8: PICO outcome coverage, and check #9: no DOIs in BibTeX)
 
 ## Phase 6: Verification
 
@@ -329,6 +330,10 @@ Corrective actions by item:
 9. Quality assessment completed?                            [PASS/FAIL or N/A]
 10. Limitations acknowledged?                               [PASS/FAIL]
 ```
+
+### === GATE 7 ===
+
+Run MCP tool `validate_gate(gate="7", review_dir="review/")`. All checks must PASS before proceeding.
 
 ## Phase 8: Double Audit + Review Walkthrough
 
@@ -560,7 +565,7 @@ If a sub-skill fails:
 | MCP `citation_chain` | `combined_results.json`, seed indices | `chaining_candidates.json` |
 | Orchestrator (3b inline) | `chaining_candidates.json`, criteria | updates `combined_results.json`, `included_indices.json`, `screening_log.md` |
 | Skill `litrev-extract` | `combined_results.json`, `included_indices.json` | `extracted_claims.json` |
-| Skill `litrev-synthesize` | `extracted_claims.json`, `screening_log.md`, `search_results.md`, `combined_results.json` | `<topic>_review.md`, `vancouver.csl` |
+| Skill `litrev-synthesize` | `extracted_claims.json`, `screening_log.md`, `search_results.md`, `combined_results.json`, `protocol.md` (optional) | `<topic>_review.md`, `vancouver.csl` |
 | MCP `verify_dois` | `<topic>_review.md` | `<topic>_review_citation_report.json` |
 | MCP `generate_bibliography` | `<topic>_review.md` | `references.bib` |
 | MCP `audit_claims` | `<topic>_review.md`, `extracted_claims.json` | `claims_audit.json` |

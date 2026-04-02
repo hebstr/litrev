@@ -87,7 +87,7 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 
 ```bash
 cd ~/.claude/skills/litrev-mcp
-uv venv .venv && uv pip install -e . --python .venv/bin/python
+uv sync
 ```
 
 The MCP server is configured in `~/.claude/.mcp.json`:
@@ -96,8 +96,8 @@ The MCP server is configured in `~/.claude/.mcp.json`:
 {
   "litrev-mcp": {
     "type": "stdio",
-    "command": "~/.claude/skills/litrev-mcp/.venv/bin/python",
-    "args": ["-m", "litrev_mcp.server"],
+    "command": "uv",
+    "args": ["run", "--directory", "~/.claude/skills/litrev-mcp", "litrev-mcp"],
     "env": {
       "LITREV_EMAIL": "you@example.com",
       "NCBI_API_KEY": "your-key-here",
@@ -116,7 +116,7 @@ Configure them in your MCP client `env` block or shell environment.
 |---|---|
 | `LITREV_EMAIL` | Your email — activates polite pool (faster rates) for NCBI, CrossRef, OpenAlex. Falls back to `NCBI_EMAIL`. |
 | `NCBI_API_KEY` | Raises PubMed rate limit from 3 to 10 req/s. Free at https://www.ncbi.nlm.nih.gov/account/settings/ |
-| `S2_API_KEY` | Raises Semantic Scholar rate limit from ~1 to 100 req/s. Free at https://www.semanticscholar.org/product/api#api-key |
+| `S2_API_KEY` | **Strongly recommended.** Without it, Semantic Scholar searches are severely rate-limited (~1 req/s) and may return incomplete results. The orchestrator will halt on degraded S2 search. Free at https://www.semanticscholar.org/product/api#api-key |
 
 ## Usage
 

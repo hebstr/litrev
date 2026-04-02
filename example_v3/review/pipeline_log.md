@@ -135,6 +135,10 @@ See `audit_fidelity.md` and `audit_methodology.md` for full walkthrough decision
 - **Phase 6 (Verification)** was the bottleneck. 17 of 60 DOIs failed initial verification — all were fabricated by litrev-synthesize (wrong DOIs assigned to correct papers). The DOI correction cycle (agent + CrossRef lookup + re-verification) took ~25 min. This is a systemic issue: the synthesis LLM generates plausible but incorrect DOIs.
 - **Phase 6.2 (generate_bibliography)** then found 21 DOI-author mismatches because the corrected DOIs still pointed to different papers in some cases. Root cause: the embedded BibTeX DOIs were wrong from the start.
 
+### Post-run re-generation (2026-04-02)
+
+The review file `subacromial_csi_shoulder_review.md` was regenerated after applying the B1 fix (PICO outcome coverage) to `litrev-synthesize/SKILL.md`. The new file is 3324 lines with 358 BibTeX entries (vs 1028 lines / 63 entries in the original run). Funnel metrics and Gate 5 stats above reflect the original run, not the re-generation.
+
 ### Skill improvement targets (from audit findings)
 1. **litrev-synthesize**: enforce PICO outcome → section mapping (F-MET-01)
 2. **litrev-synthesize**: guard against multi-source citation conflation (F-FID-02)

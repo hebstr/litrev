@@ -34,7 +34,7 @@ Planning → litrev-search → litrev-screen → Snowballing (MCP, optional) →
 | Phase | Delegate | Purpose |
 |-------|----------|---------|
 | 2 | Skill `litrev-search` | Multi-database search + aggregation |
-| 3a | Skill `litrev-screen` | Title / abstract / full-text screening |
+| 3a | Skill `litrev-screen` | Title / abstract screening (full-text screening planned, see ROADMAP.md E1) |
 | 3b | MCP `citation_chain` + inline screening | Citation chaining (backward + forward) |
 | 4 | Skill `litrev-extract` | Claim extraction + quality assessment |
 | 5 | Skill `litrev-synthesize` | Constrained thematic writing |

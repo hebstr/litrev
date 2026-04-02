@@ -56,7 +56,7 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 |-------|----------|--------------|
 | 1 | `litrev` | Define research question (PICO/PEO/SPIDER), scope, inclusion/exclusion criteria |
 | 2 | Skill `litrev-search` + MCP `process_results`, `deduplicate_results` | Query databases, deduplicate and rank results |
-| 3a | Skill `litrev-screen` + MCP `fetch_abstracts` | Multi-pass title/abstract/full-text screening with PRISMA counts |
+| 3a | Skill `litrev-screen` + MCP `fetch_abstracts` | Multi-pass title/abstract screening with PRISMA counts (full-text screening planned, see [ROADMAP.md](ROADMAP.md) E1) |
 | 3b | MCP `citation_chain` + inline screening | Backward and forward citation chaining |
 | 4 | Skill `litrev-extract` + MCP `extract_claims_regex` | Claim extraction, quality assessment, theme assignment |
 | 5 | Skill `litrev-synthesize` | Constrained thematic writing — every claim traced to source |
@@ -197,6 +197,7 @@ See [example_v3/](example_v3/) for example inputs (prompt + context). Output fil
 
 | Doc | Purpose |
 |-----|---------|
+| [ROADMAP.md](ROADMAP.md) | Improvement roadmap (priorities A-E) |
 | [ROBUST.md](ROBUST.md) | Remaining static reviews + micro-audit spec |
 | [DEFERRED.md](DEFERRED.md) | Findings deferred from code reviews |
 | [PROMPT_RECOS.md](PROMPT_RECOS.md) | User-facing tips for writing litrev prompts |

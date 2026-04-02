@@ -1,28 +1,26 @@
 # Robustness Plan — litrev
 
-## Next: end-to-end validation run
+## Completed: end-to-end validation run (2026-04-02)
 
-Run `example_v3` (scoping review, corticosteroid infiltrations) — first full pipeline test post API key fix (2026-04-02).
+`example_v3` (scoping review, corticosteroid infiltrations) — full pipeline test post API key fix. Findings triaged into [ROADMAP.md](ROADMAP.md) priorities A-E.
 
-Validates:
-- 3 new MCP search tools (search_pubmed, search_s2, search_openalex)
+Validated:
+- 3 MCP search tools (search_pubmed, search_s2, search_openalex)
 - S2 pre-flight check
 - Full 9-phase pipeline on a real clinical topic
 - Known quality patterns (descriptive claims, causal drift, DOI hallucination)
 
-Post-run: update memory with new bugs/patterns, then decide on further reviews.
-
 ---
 
-## Static reviews (after validation run)
+## Static reviews
 
 Layer 1 adversarial reviews completed 2026-04-01 (6 components, 26 findings accepted out of 75). Fixes applied.
 
 | Action | Priority | Status |
 |--------|----------|--------|
-| `/full-review` integration | Next (after run) | Not done (unblocked since API key fix 2026-04-02) |
+| `/full-review` integration | Done | litrev-mcp clean (2 micro-fixes: regex perf + type annotation), 121/121 tests OK. B1/B2/B3 instructions added to litrev-synthesize. |
 | `/blindspot-review` on agents/audit_* | Optional | Not done |
-| `/critical-code-reviewer` on litrev-mcp/src/ | Optional | Not done (3 bugs already found by mcp-adversary) |
+| `/critical-code-reviewer` on litrev-mcp/src/ | Optional | Covered by `/full-review` — clean, no blocking issues |
 
 ---
 

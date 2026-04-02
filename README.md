@@ -197,8 +197,6 @@ See [example_v3/](example_v3/) for example inputs (prompt + context). Output fil
 
 | Doc | Purpose |
 |-----|---------|
-| [roadmap_env_fix.md](roadmap_env_fix.md) | Env/API key fix — completed 2026-04-02 |
-| [ROBUST.md](ROBUST.md) | Review calibration data + remaining static reviews + micro-audit spec |
+| [ROBUST.md](ROBUST.md) | Remaining static reviews + micro-audit spec |
 | [DEFERRED.md](DEFERRED.md) | Findings deferred from code reviews |
-| [REVIEW.md](REVIEW.md) | Archived skill-adversary report (2026-04-01) |
 | [PROMPT_RECOS.md](PROMPT_RECOS.md) | User-facing tips for writing litrev prompts |

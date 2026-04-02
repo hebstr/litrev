@@ -17,14 +17,14 @@
 - Average FP 47% — acceptable for adversarial review, but LOW findings are almost always noise (0% acceptance)
 - skill-adversary doesn't know Claude Code skill conventions (`!`command``, long description, `$SKILL_DIR`)
 - Cross-model L1 (sonnet) added value on severity calibration, not on detection
-- Bug found: review-walkthrough calls `ouroboros_evaluate` instead of `ouroboros_qa` when no Ouroboros session exists
+- ~~Bug found: review-walkthrough calls `ouroboros_evaluate` instead of `ouroboros_qa` when no Ouroboros session exists~~ (verified fixed — ouroboros-bridge.md now uses `ouroboros_qa` for QA verdicts)
 
 ### Remaining static reviews
 
 | Action | Status |
 |--------|--------|
 | `/critical-code-reviewer` on litrev-mcp/src/ | Not done (optional — 3 bugs found by mcp-adversary were the most impactful) |
-| `/full-review` integration | Not done → after API key fix ([roadmap_env_fix.md](roadmap_env_fix.md)) |
+| `/full-review` integration | Not done (API key fix completed 2026-04-02 — unblocked) |
 | `/blindspot-review` on agents/audit_* | Not done |
 
 ---

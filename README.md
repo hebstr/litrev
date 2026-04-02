@@ -18,13 +18,14 @@ litrev-search/              ← Phase 2: search strategy (LLM) + MCP execution
 litrev-screen/              ← Phase 3: screening decisions (LLM) + MCP abstract fetch
 litrev-extract/             ← Phase 4: claim extraction (LLM) + MCP regex extraction
 litrev-synthesize/          ← Phase 5: constrained thematic writing (LLM only)
-litrev-mcp/                 ← MCP server: 8 deterministic tools
+litrev-mcp/                 ← MCP server: 10 deterministic tools
 ```
 
 ### MCP tools (`litrev-mcp`)
 
 | Tool | Purpose |
 |------|---------|
+| `search_s2` | Authenticated keyword search on Semantic Scholar |
 | `process_results` | Deduplicate, rank, filter, format search results |
 | `deduplicate_results` | Deduplicate combined_results.json by PMID/DOI/title |
 | `fetch_abstracts` | Retrieve missing abstracts from PubMed |
@@ -33,6 +34,7 @@ litrev-mcp/                 ← MCP server: 8 deterministic tools
 | `verify_dois` | DOI/PMID validation + retraction check (CrossRef + PubMed) |
 | `generate_bibliography` | BibTeX generation (3-level DOI resolution) |
 | `audit_claims` | Cross-verify numerical claims vs source abstracts |
+| `validate_gate` | Mechanical gate validation for review pipeline phases |
 
 ### Design principles
 
@@ -188,3 +190,13 @@ pandoc <topic>_review.md --citeproc --bibliography=references.bib --csl=vancouve
 ## Example
 
 See [example_v3/](example_v3/) for a complete end-to-end run (all 9 phases including double audit with walkthrough).
+
+## Development
+
+| Doc | Purpose |
+|-----|---------|
+| [roadmap_env_fix.md](roadmap_env_fix.md) | Step-by-step plan for the env/API key fix (active) |
+| [ROBUST.md](ROBUST.md) | Review calibration data + remaining static reviews + micro-audit spec |
+| [DEFERRED.md](DEFERRED.md) | Findings deferred from code reviews |
+| [REVIEW.md](REVIEW.md) | Archived skill-adversary report (2026-04-01) |
+| [PROMPT_RECOS.md](PROMPT_RECOS.md) | User-facing tips for writing litrev prompts |

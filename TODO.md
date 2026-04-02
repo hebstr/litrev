@@ -1,3 +1,6 @@
+lancer sur example_v3 : regler pb API key
+
+
 Phase 2 terminée. 3 801 articles collectés (PubMed 3765, Semantic Scholar 36, OpenAlex   
   utilisé uniquement pour enrichissement des citations).                     
 

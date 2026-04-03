@@ -18,7 +18,7 @@ Layer 1 adversarial reviews completed 2026-04-01 (6 components, 26 findings acce
 
 | Action | Priority | Status |
 |--------|----------|--------|
-| `/full-review` integration | Done | litrev-mcp clean (2 micro-fixes: regex perf + type annotation), 121/121 tests OK. B1/B2/B3 instructions added to litrev-synthesize. |
+| `/full-review` integration | Done | litrev-mcp clean (2 micro-fixes: regex perf + type annotation), 180/180 tests OK. B1/B2/B3 instructions added to litrev-synthesize. |
 | `/blindspot-review` on agents/audit_* | Optional | Not done |
 | `/critical-code-reviewer` on litrev-mcp/src/ | Optional | Covered by `/full-review` — clean, no blocking issues |
 

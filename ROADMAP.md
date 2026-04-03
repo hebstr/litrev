@@ -65,7 +65,7 @@ litrev-synthesize combines two studies in `[@A; @B]` while reporting data from o
 litrev-synthesize fabricates DOIs (16/56 fabricated, 9/56 misattributed in example_v2; 17/60 failed in example_v3). PMIDs from extracted_claims.json are reliable.
 
 - **Files**: `litrev-synthesize/SKILL.md`
-- **Fix**: instruct synthesize to emit only PMID-based BibTeX entries. Let `generate_bibliography` resolve DOIs from PMIDs
+- **Fix**: instruct synthesize to emit only PMID-based BibTeX entries. `generate_bibliography` resolves DOIs from PMIDs via `_resolve_pmids_to_dois` (NCBI ID Converter API)
 - **Source**: feedback_litrev_extraction_patterns.md "DOI hallucination"
 - [x] Instruction updated in SKILL.md (Step 4j + Step 5 check #9)
 - [x] Tested on example_v3 (2026-04-02) — PASS, 0 DOIs in BibTeX
@@ -76,13 +76,14 @@ litrev-synthesize fabricates DOIs (16/56 fabricated, 9/56 misattributed in examp
 
 ### C1. Log dedup counts in search_log.md
 
-Zero duplicates across 3 databases was suspicious and unexplained. The MCP `deduplicate_results` tool works but doesn't report counts.
+Zero duplicates across 3 databases was suspicious and unexplained. The MCP `deduplicate_results` tool now returns per-method match counts.
 
-- **Files**: `litrev-search/SKILL.md`, possibly `litrev-mcp/src/tools/dedup.py`
-- **Fix**: log pre/post dedup counts in search_log.md. If dedup tool returns counts, use them; otherwise count combined_results.json before/after
+- **Files**: `litrev-mcp/src/litrev_mcp/lib/dedup.py`, `litrev-mcp/src/litrev_mcp/tools/search.py`, `litrev-search/SKILL.md`
+- **Fix**: `deduplicate_merge` tracks match method (PMID/DOI/title), `deduplicate_results` returns `duplicates_by_pmid/doi/title`, litrev-search template updated to log breakdown
 - **Source**: F-MET-02
-- [ ] Instruction added
-- [ ] MCP tool returns dedup stats
+- [x] MCP tool returns dedup stats (before/after/removed + per-method breakdown)
+- [x] Instruction added to litrev-search Step 3 + Step 6 template
+- [x] Tests added (3 new in test_dedup.py, 1 updated in test_process_results.py)
 
 ### C2. Grey literature / guideline database support
 
@@ -164,8 +165,8 @@ search_openalex ┘                              fetch_fulltext
 ## Execution sequence
 
 ```
-A (MCP fixes) ✓ → B (synthesis quality) ✓ → /full-review ✓ → C (search doc) → D (orchestrator) → E (new sources)
+A (MCP fixes) ✓ → B (synthesis quality) ✓ → /full-review ✓ → C1 (dedup stats) ✓ → C2 (grey lit) → D (orchestrator) → E (new sources)
 ```
 
-A+B done, /full-review done (2026-04-02). Next: C (search doc improvements).
+A+B+C1 done (2026-04-03). Next: C2 (grey literature), then D (orchestrator disclosures).
 Do not start E before B+C are stable — new sources compound existing quality issues.

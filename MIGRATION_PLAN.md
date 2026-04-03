@@ -59,10 +59,10 @@ Les 6 composants litrev (orchestrateur, 4 sous-skills, serveur MCP) sont eparpil
 
 ### Phase 1 — Scaffold plugin (commit 1)
 
-- [ ] Creer `.claude-plugin/marketplace.json`, `plugin.json`, `.mcp.json`
-- [ ] Creer le dossier `skills/litrev/`
-- [ ] Deplacer dans `skills/litrev/` : SKILL.md, agents/, evals/, example_v1-v3/, PROMPT_RECOS.md
-- [ ] Creer les dossiers `skills/litrev-{search,screen,extract,synthesize}/`
+- [x] Creer `.claude-plugin/marketplace.json`, `plugin.json`, `.mcp.json`
+- [x] Creer le dossier `skills/litrev/`
+- [x] Deplacer dans `skills/litrev/` : SKILL.md, agents/, evals/, example_v1-v3/, PROMPT_RECOS.md
+- [x] Creer les dossiers `skills/litrev-{search,screen,extract,synthesize}/`
 
 Fichiers a creer :
 - `.claude-plugin/marketplace.json` (modele ouroboros, name=litrev, owner=hebstr)
@@ -71,20 +71,20 @@ Fichiers a creer :
 
 ### Phase 2 — Copier les sous-skills (commit 2)
 
-- [ ] Copier `~/.claude/skills/litrev-search/{SKILL.md,references/,evals/}` → `skills/litrev-search/`
-- [ ] Copier `~/.claude/skills/litrev-screen/{SKILL.md,references/,evals/}` → `skills/litrev-screen/`
-- [ ] Copier `~/.claude/skills/litrev-extract/{SKILL.md,evals/}` → `skills/litrev-extract/`
-- [ ] Copier `~/.claude/skills/litrev-synthesize/{SKILL.md,assets/,evals/}` → `skills/litrev-synthesize/`
-- [ ] Ne PAS copier les `workspace/` (donnees de dev)
+- [x] Copier `~/.claude/skills/litrev-search/{SKILL.md,references/,evals/}` → `skills/litrev-search/`
+- [x] Copier `~/.claude/skills/litrev-screen/{SKILL.md,references/,evals/}` → `skills/litrev-screen/`
+- [x] Copier `~/.claude/skills/litrev-extract/{SKILL.md,evals/}` → `skills/litrev-extract/`
+- [x] Copier `~/.claude/skills/litrev-synthesize/{SKILL.md,assets/,evals/}` → `skills/litrev-synthesize/`
+- [x] Ne PAS copier les `workspace/` (donnees de dev)
 
 ### Phase 3 — Absorber litrev-mcp (commit 3)
 
-- [ ] Copier dans `mcp/` : src/, tests/, docs/, pyproject.toml, uv.lock, README.md (exclure .git, .venv, __pycache__, .ruff_cache, .pytest_cache, review/)
-- [ ] Consolider les DEFERRED.md (litrev-mcp, litrev-screen, litrev-extract → racine)
-- [ ] Supprimer les DEFERRED.md des sous-skills apres consolidation
-- [ ] `cd mcp && uv sync && uv run pytest tests/ -v` pour verifier
+- [x] Copier dans `mcp/` : src/, tests/, docs/, pyproject.toml, uv.lock, README.md (exclure .git, .venv, __pycache__, .ruff_cache, .pytest_cache, review/)
+- [x] Consolider les DEFERRED.md (litrev-mcp, litrev-screen, litrev-extract → racine)
+- [x] Supprimer les DEFERRED.md des sous-skills apres consolidation (N/A — sous-skills source non modifies, seront supprimes en Phase 8)
+- [x] `cd mcp && uv sync && uv run pytest tests/ -v` pour verifier — 180 passed
 
-### Phase 4 — Corriger les chemins (commit 4)
+### Phase 4 — Corriger les chemins (commit 4) ✓ DONE
 
 Corrections dans les SKILL.md :
 
@@ -106,7 +106,7 @@ Corrections dans les docs de tracking :
 
 ### Phase 5 — Mettre a jour .gitignore
 
-- [ ] Fusionner les .gitignore existants en un seul a la racine :
+- [x] Fusionner les .gitignore existants en un seul a la racine :
   ```
   __pycache__/
   *.pyc
@@ -122,17 +122,18 @@ Corrections dans les docs de tracking :
 
 ### Phase 6 — Mettre a jour la config MCP utilisateur
 
-- [ ] Editer `~/.claude/.mcp.json` : changer le chemin de `/home/julien/.claude/skills/litrev-mcp/run.sh` vers `/home/julien/.claude/skills/litrev/mcp` avec `uv run --directory`
-- [ ] Verifier que le serveur MCP demarre correctement
+- [x] Editer `~/.claude/.mcp.json` : changer le chemin de `/home/julien/.claude/skills/litrev-mcp/run.sh` vers `/home/julien/.claude/skills/litrev/mcp` avec `uv run --directory`
+- [x] Verifier que le serveur MCP demarre correctement — OK, 12 tools disponibles
 
 ### Phase 7 — Verification
 
-- [ ] Tests MCP : `cd mcp && uv run pytest tests/ -v` (180 tests)
-- [ ] Verifier les noms de skills inchanges dans le frontmatter (litrev, litrev-search, litrev-screen, litrev-extract, litrev-synthesize)
-- [ ] Nouvelle session Claude Code : verifier que les outils `mcp__litrev-mcp__*` sont accessibles
-- [ ] Tester `/litrev-screen` standalone : verifie la resolution de `references/screening_criteria.md`
-- [ ] Tester `/litrev-synthesize` standalone : verifie l'acces a `assets/review_template.md`
-- [ ] Tester `/litrev` avec un prompt simple : verifie la delegation aux sous-skills
+- [x] Tests MCP : `cd mcp && uv run pytest tests/ -v` — 180 passed
+- [x] Verifier les noms de skills inchanges dans le frontmatter — OK (litrev, litrev-search, litrev-screen, litrev-extract, litrev-synthesize)
+- [x] Nouvelle session Claude Code : verifier que les outils `mcp__litrev-mcp__*` sont accessibles — OK, 12 tools disponibles, prefix inchange
+- [x] Deep consistency scan (allowed-tools vs registered tools, asset paths, plugin manifests) — 0 issues
+- [ ] Tester `/litrev-screen` standalone : verifie la resolution de `references/screening_criteria.md` — deferred to post-cleanup
+- [ ] Tester `/litrev-synthesize` standalone : verifie l'acces a `assets/review_template.md` — deferred to post-cleanup
+- [ ] Tester `/litrev` avec un prompt simple : verifie la delegation aux sous-skills — deferred to post-cleanup
 
 ### Phase 8 — Nettoyage (apres verification uniquement)
 

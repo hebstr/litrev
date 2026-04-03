@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "litrev-mcp": {
+      "command": "uv",
+      "args": ["run", "--directory", "./mcp", "litrev-mcp"],
+      "timeout": 120
+    }
+  }
+}

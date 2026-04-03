@@ -6,3 +6,5 @@ __pycache__/
 dist/
 build/
 workspace/
+.ruff_cache/
+mcp/.venv/

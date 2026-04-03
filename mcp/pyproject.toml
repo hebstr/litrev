@@ -1,0 +1,25 @@
+[project]
+name = "litrev-mcp"
+version = "0.1.0"
+description = "MCP server for literature review: search, screen, snowball, extract, and verify."
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=1.2",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+litrev-mcp = "litrev_mcp.server:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/litrev_mcp"]
+
+[tool.pytest]
+testpaths = ["tests"]

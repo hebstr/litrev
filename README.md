@@ -5,23 +5,23 @@ Searches PubMed/MEDLINE, Semantic Scholar, and OpenAlex, screens articles, extra
 
 ## Architecture
 
-Hybrid architecture: **sub-skills** handle LLM reasoning (search strategy, screening decisions, synthesis writing), while a **MCP server** (`litrev-mcp`) handles deterministic execution (API calls, deduplication, BibTeX generation, claim verification). **Agents** handle post-pipeline quality audits.
+Hybrid architecture: **sub-skills** handle LLM reasoning (search strategy, screening decisions, synthesis writing), while a **MCP server** (`mcp/`) handles deterministic execution (API calls, deduplication, BibTeX generation, claim verification). **Agents** handle post-pipeline quality audits.
 
 The orchestrator (`litrev`) handles planning, sequencing, and quality gates.
 
 ```
-litrev/                     ← orchestrator (sequencing + gates)
+skills/litrev/              ← orchestrator (sequencing + gates)
 ├── agents/
 │   ├── audit_fidelity.md   ← Phase 8: fidelity audit (claims vs sources)
 │   └── audit_methodology.md ← Phase 8: methodology audit (synthesis critique)
-litrev-search/              ← Phase 2: search strategy (LLM) + MCP execution
-litrev-screen/              ← Phase 3: screening decisions (LLM) + MCP abstract fetch
-litrev-extract/             ← Phase 4: claim extraction (LLM) + MCP regex extraction
-litrev-synthesize/          ← Phase 5: constrained thematic writing (LLM only)
-litrev-mcp/                 ← MCP server: 12 deterministic tools
+skills/litrev-search/       ← Phase 2: search strategy (LLM) + MCP execution
+skills/litrev-screen/       ← Phase 3: screening decisions (LLM) + MCP abstract fetch
+skills/litrev-extract/      ← Phase 4: claim extraction (LLM) + MCP regex extraction
+skills/litrev-synthesize/   ← Phase 5: constrained thematic writing (LLM only)
+mcp/                        ← MCP server: 12 deterministic tools
 ```
 
-### MCP tools (`litrev-mcp`)
+### MCP tools (`mcp/`)
 
 | Tool | Purpose |
 |------|---------|
@@ -86,7 +86,7 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 ### Install the MCP server
 
 ```bash
-cd ~/.claude/skills/litrev-mcp
+cd ~/.claude/skills/litrev/mcp
 uv sync
 ```
 
@@ -97,7 +97,7 @@ The MCP server is configured in `~/.claude/.mcp.json`:
   "litrev-mcp": {
     "type": "stdio",
     "command": "uv",
-    "args": ["run", "--directory", "~/.claude/skills/litrev-mcp", "litrev-mcp"],
+    "args": ["run", "--directory", "~/.claude/skills/litrev/mcp", "litrev-mcp"],
     "env": {
       "LITREV_EMAIL": "you@example.com",
       "NCBI_API_KEY": "your-key-here",

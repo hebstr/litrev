@@ -10,7 +10,7 @@ All 3 fixes implemented and tested. Additional fix (A4) from /full-review.
 
 Gate 3a PRISMA consistency check used `retained_matches[-1]` which could pick up the snowballing section's `### Retained` count instead of the main screening count.
 
-- **File**: `litrev-mcp/src/litrev_mcp/tools/gates.py`
+- **File**: `mcp/src/litrev_mcp/tools/gates.py`
 - **Fix**: restrict regex search to text before `## Citation Snowballing` section
 - [x] Fix implemented
 - [x] Test added
@@ -20,7 +20,7 @@ Gate 3a PRISMA consistency check used `retained_matches[-1]` which could pick up
 
 Lancet-style abstracts use U+00B7 (`·`) for decimal points. Audit tool only matches ASCII period.
 
-- **File**: `litrev-mcp/src/tools/verify.py`
+- **File**: `mcp/src/litrev_mcp/tools/verify.py`
 - **Fix**: normalize `·` to `.` before number matching
 - [x] Fix implemented
 - [x] Test added
@@ -29,7 +29,7 @@ Lancet-style abstracts use U+00B7 (`·`) for decimal points. Audit tool only mat
 
 Abstracts with "Thirteen RCTs" flagged UNVERIFIED when review writes "13 RCTs".
 
-- **File**: `litrev-mcp/src/tools/verify.py`
+- **File**: `mcp/src/litrev_mcp/tools/verify.py`
 - **Fix**: add spelled-out → digit normalization in abstract text, or accept both forms
 - [x] Fix implemented
 - [x] Test added
@@ -44,7 +44,7 @@ Structural improvements to litrev-synthesize, identified by double audit. All te
 
 litrev-synthesize organizes by data-driven themes but does not check that each PICO outcome has a dedicated section. In the validation run, "Predictive factors" (PICO #2) had 19 articles but no section.
 
-- **Files**: `litrev-synthesize/SKILL.md`
+- **Files**: `skills/litrev-synthesize/SKILL.md`
 - **Fix**: after synthesis, cross-check each PICO outcome against theme headings. If an outcome has no dedicated section and >5 articles with relevant claims, create one or flag
 - **Source**: F-MET-01
 - [x] Instruction added to SKILL.md (Step 5, check #8)
@@ -54,7 +54,7 @@ litrev-synthesize organizes by data-driven themes but does not check that each P
 
 litrev-synthesize combines two studies in `[@A; @B]` while reporting data from only one, making it look like both produced the finding.
 
-- **Files**: `litrev-synthesize/SKILL.md`
+- **Files**: `skills/litrev-synthesize/SKILL.md`
 - **Fix**: add instruction that each specific statistic in a dual citation must be verifiable in both cited abstracts
 - **Source**: F-FID-02
 - [x] Instruction added to SKILL.md (Step 4e, after constrained writing rule)
@@ -64,7 +64,7 @@ litrev-synthesize combines two studies in `[@A; @B]` while reporting data from o
 
 litrev-synthesize fabricates DOIs (16/56 fabricated, 9/56 misattributed in example_v2; 17/60 failed in example_v3). PMIDs from extracted_claims.json are reliable.
 
-- **Files**: `litrev-synthesize/SKILL.md`
+- **Files**: `skills/litrev-synthesize/SKILL.md`
 - **Fix**: instruct synthesize to emit only PMID-based BibTeX entries. `generate_bibliography` resolves DOIs from PMIDs via `_resolve_pmids_to_dois` (NCBI ID Converter API)
 - **Source**: feedback_litrev_extraction_patterns.md "DOI hallucination"
 - [x] Instruction updated in SKILL.md (Step 4j + Step 5 check #9)
@@ -78,7 +78,7 @@ litrev-synthesize fabricates DOIs (16/56 fabricated, 9/56 misattributed in examp
 
 Zero duplicates across 3 databases was suspicious and unexplained. The MCP `deduplicate_results` tool now returns per-method match counts.
 
-- **Files**: `litrev-mcp/src/litrev_mcp/lib/dedup.py`, `litrev-mcp/src/litrev_mcp/tools/search.py`, `litrev-search/SKILL.md`
+- **Files**: `mcp/src/litrev_mcp/lib/dedup.py`, `mcp/src/litrev_mcp/tools/search.py`, `skills/litrev-search/SKILL.md`
 - **Fix**: `deduplicate_merge` tracks match method (PMID/DOI/title), `deduplicate_results` returns `duplicates_by_pmid/doi/title`, litrev-search template updated to log breakdown
 - **Source**: F-MET-02
 - [x] MCP tool returns dedup stats (before/after/removed + per-method breakdown)
@@ -102,7 +102,7 @@ No French institutional guidelines (HAS, SOFCOT, SFR, INRS) despite "French data
 
 Single-day review timeline not disclosed. The orchestrator should add this automatically.
 
-- **File**: `litrev-synthesize/SKILL.md` (Step 4h Discussion)
+- **File**: `skills/litrev-synthesize/SKILL.md` (Step 4h Discussion)
 - **Fix**: required limitation item #1 — state AI-assisted timeline with date
 - **Source**: F-MET-03
 - [x] Instruction added (2026-04-03)
@@ -111,7 +111,7 @@ Single-day review timeline not disclosed. The orchestrator should add this autom
 
 Snowballing absence not mentioned in limitations when skipped.
 
-- **File**: `litrev-synthesize/SKILL.md` (Step 4h Discussion) + `litrev/SKILL.md` (Phase 5 documentation)
+- **File**: `skills/litrev-synthesize/SKILL.md` (Step 4h Discussion) + `skills/litrev/SKILL.md` (Phase 5 documentation)
 - **Fix**: required limitation item #2 — check `screening_log.md` for absent `## Citation Snowballing` section, disclose if missing. Orchestrator documents that synthesize auto-detects from screening_log.md.
 - **Source**: F-MET-04
 - [x] Instruction added (2026-04-03)

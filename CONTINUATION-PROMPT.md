@@ -1,76 +1,66 @@
-# Session handoff — litrev stabilisation: all functional improvements DONE
+# Session handoff — litrev plugin migration: Phases 1-7 DONE
 
 ## Context
-Stabilisation of the `litrev` skill suite (6 components: orchestrator, 4 sub-skills, 1 Python MCP server). This session completed all remaining functional improvements (D1/D2, C2, eval fixtures, micro-audits) and resequenced the plan to place plugin migration as capstone. All priorities A-D done, eval fixtures and micro-audits done. 180 MCP tests passing.
+Plugin migration of the `litrev` skill suite. Consolidated 6 standalone components (orchestrator, 4 sub-skills, 1 Python MCP server) into a single plugin under `~/.claude/skills/litrev/`. Phases 1-7 of MIGRATION_PLAN.md complete. MCP server verified working from new location (12 tools, prefix unchanged). 180 tests passing. Deep consistency scan: 0 issues.
 
-## Key decisions
-- **Sequence**: functional improvements before plugin migration. Migration is structural only (move files, update paths, create plugin manifest). New sources (E) after migration so they land in final structure.
-- **C2 approach**: manual checklist (option a) — no API exists for French institutional sources (HAS, SOFCOT, SFR, INRS). Step 5b in litrev-search prompts user, search_log.md documents results, synthesize auto-detects missing grey literature.
-- **Micro-audits**: lightweight inline checks (3-line summaries), not full agents. Systematic/meta-analysis only. 4 checkpoints after Gates 2, 3a, 4, 5.
-- **Eval fixtures**: compact fixtures from example_v3 (5 articles, 19 audit claims). Eval #6 tests Phase 6 verification pipeline, eval #7 tests Phase 8 parallel audit agents.
+## What was done (Phases 1-7)
 
-## Files modified this session
+1. **Phase 1**: Created `.claude-plugin/` (marketplace.json, plugin.json, .mcp.json). Moved orchestrator into `skills/litrev/` (SKILL.md, agents/, evals/, example_v1-v3/, PROMPT_RECOS.md).
+2. **Phase 2**: Copied 4 sub-skills into `skills/` (litrev-search, litrev-screen, litrev-extract, litrev-synthesize). Checksums verified. workspace/ excluded.
+3. **Phase 3**: Absorbed litrev-mcp into `mcp/` (src/, tests/, docs/, pyproject.toml, uv.lock). Consolidated DEFERRED.md. 180 tests passed.
+4. **Phase 4**: Fixed all paths in SKILL.md files (absolute → relative) and tracking docs (litrev-mcp/ → mcp/, litrev-xxx/ → skills/litrev-xxx/).
+5. **Phase 5**: Merged .gitignore (root litrev + litrev-mcp).
+6. **Phase 6**: Updated `~/.claude/.mcp.json` to use `uv run --directory /home/julien/.claude/skills/litrev/mcp litrev-mcp`.
+7. **Phase 7**: 180 tests pass, skill names unchanged, MCP tools accessible (prefix `mcp__litrev-mcp__*` preserved), deep scan 0 issues.
 
-**Skill instructions:**
-- `litrev/SKILL.md` — Phase 5 auto-detection note (D2), 4 micro-audits (after Gates 2, 3a, 4, 5)
-- `litrev-search/SKILL.md` — Step 5b grey literature checklist, search_log.md template `### Grey literature` section
-- `litrev-synthesize/SKILL.md` — Step 4h: 3 required limitation items (AI timeline, skipped phases, grey literature)
+## What remains
 
-**Evals:**
-- `evals/evals.json` — eval #6 (Phase 6 verification) + eval #7 (Phase 8 audit)
-- `evals/fixtures/verify_phase6/` — review.md, extracted_claims.json, claims_audit.json, references.bib, protocol.md
-- `evals/fixtures/audit_phase8/` — same fixture set (Phase 8 needs Phase 6 outputs)
+### Immediate: Phase 8 — Cleanup
+Delete the 5 old standalone directories (backup exists at `~/.claude/skills/litrev-backup-20260403.tar.gz`, 16 MB):
+- `~/.claude/skills/litrev-search/`
+- `~/.claude/skills/litrev-screen/`
+- `~/.claude/skills/litrev-extract/`
+- `~/.claude/skills/litrev-synthesize/`
+- `~/.claude/skills/litrev-mcp/`
 
-**Tracking:**
-- `ROADMAP.md` — date updated, Priority F added (migration), D1/D2/C2 marked done, execution sequence updated
-- `ROBUST.md` — micro-audits section updated (implemented)
-- `DEFERRED.md` — eval fixtures item struck through (done)
-- `README.md` — "priorities A-E" → "A-F"
-- `CONTINUATION-PROMPT.md` — this file
+Then 3 smoke tests:
+- `/litrev-screen` standalone: verify `references/screening_criteria.md` resolution
+- `/litrev-synthesize` standalone: verify `assets/review_template.md` resolution
+- `/litrev` orchestrator: verify sub-skill delegation
 
-**Memory:**
-- `project_plan_2026q2.md` — steps 6-9 marked DONE, next → step 10
-- `project_roadmap_sources.md` — sequence and description aligned
+### After migration: Priority E — New source integrations
+- E1: fetch_fulltext (DOI → full text via Unpaywall/PMC/S2/CORE/Sci-Hub cascade)
+- E2: search_scopus (api.elsevier.com)
+- E3: search_wos (api.clarivate.com)
+- E4: EMBASE (deferred — no public API)
 
-## Open items
+### DEFERRED items
+- FN-3/GAP-3: Import path for pre-existing corpus
+- Umbrella review workflow
+- Unit tests for 5/10 MCP tool modules
+- Edge-case evals (F24-F27)
 
-1. **Plugin migration (MIGRATION_PLAN.md)** — 8 phases. Consolidate orchestrator, 4 sub-skills, MCP server into single plugin under `~/.claude/skills/litrev/`. Structural only.
-
-2. **Priority E: new source integrations** — fetch_fulltext, search_scopus, search_wos. After migration.
-
-### DEFERRED items (not in current roadmap)
-- FN-3/GAP-3: Import path for pre-existing corpus (PMIDs, BibTeX, PDFs → combined_results.json)
-- Umbrella review (review of reviews) workflow
-- Unit tests manquants pour 5/10 modules MCP tools (abstracts, openalex_search, pubmed_search, s2_search, snowball)
+## Key files
+- `MIGRATION_PLAN.md` — canonical plan, Phases 1-7 checked, Phase 8 pending
+- `ROADMAP.md` — all priorities, execution sequence
+- `mcp/` — MCP server (180 tests)
+- `skills/` — 5 skills (orchestrator + 4 sub-skills)
+- `.claude-plugin/` — plugin manifests
+- Memory: `project_plan_2026q2.md` (step 10 = migration, Phases 1-7 done)
 
 ## Continuation prompt
 
 ```
-All functional improvements for litrev are DONE. 180 MCP tests passing. Ready for plugin migration.
+Litrev plugin migration Phases 1-7 DONE and committed. 180 MCP tests pass, 12 tools accessible, prefix unchanged.
 
-Next: execute MIGRATION_PLAN.md — consolidate 6 components (orchestrator, litrev-search, litrev-screen, litrev-extract, litrev-synthesize, litrev-mcp) into a single Claude Code plugin.
+Next: Phase 8 — delete old standalone directories:
+  rm -rf ~/.claude/skills/litrev-{search,screen,extract,synthesize} ~/.claude/skills/litrev-mcp
+Backup: ~/.claude/skills/litrev-backup-20260403.tar.gz
 
-The plan has 8 phases:
-1. Scaffold plugin (.claude-plugin/ manifest)
-2. Copy sub-skills into skills/ subdirectory
-3. Absorb litrev-mcp into mcp/ subdirectory
-4. Fix all paths in SKILL.md files and tracking docs
-5. Update .gitignore
-6. Update MCP config (~/.claude/.mcp.json)
-7. Verification (tests, skill invocation, MCP tools)
-8. Cleanup (delete old standalone directories)
+Then 3 smoke tests: /litrev-screen, /litrev-synthesize, /litrev standalone invocation.
 
-Key files:
-- `litrev/MIGRATION_PLAN.md` (canonical plan, all 8 phases with checkboxes)
-- `litrev/ROADMAP.md` (Priority F = migration)
-- `litrev-mcp/` (MCP server to absorb, 180 tests)
-- `litrev-search/`, `litrev-screen/`, `litrev-extract/`, `litrev-synthesize/` (sub-skills to consolidate)
-- Memory: project_plan_2026q2.md (step 10 = migration)
+After migration: Priority E (new sources — fetch_fulltext, search_scopus, search_wos).
 
-Known risks:
-- MCP prefix may change from `mcp__litrev-mcp__` to `mcp__plugin_litrev__` — test in Phase 7 before deleting old dirs
-- Absolute paths in litrev-screen/SKILL.md:69 and litrev-synthesize/SKILL.md:74 — fix in Phase 4
-- Shell `cp` commands in litrev-synthesize/SKILL.md — replace with Read/Write instructions
-
-Constraints: user manages all git operations (never run git write commands). Always update memory files when state changes.
+Key files: MIGRATION_PLAN.md (Phase 8 checkboxes), ROADMAP.md, mcp/, skills/.
+Constraints: user manages all git operations. Always update memory files when state changes.
 ```

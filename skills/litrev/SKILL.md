@@ -385,7 +385,7 @@ Launch two agents simultaneously using the Agent tool:
 
 Prompt each agent with:
 ```
-Read the agent instructions at ~/.claude/skills/litrev/agents/<agent_file>.md, then execute the audit on the review/ directory in the current working directory. Write the report to review/<output_file>.md.
+Read the agent instructions at agents/<agent_file>.md, then execute the audit on the review/ directory in the current working directory. Write the report to review/<output_file>.md.
 ```
 
 Both agents run in the background (parallel). Wait for both to complete before proceeding.

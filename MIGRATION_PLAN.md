@@ -131,18 +131,18 @@ Corrections dans les docs de tracking :
 - [x] Verifier les noms de skills inchanges dans le frontmatter — OK (litrev, litrev-search, litrev-screen, litrev-extract, litrev-synthesize)
 - [x] Nouvelle session Claude Code : verifier que les outils `mcp__litrev-mcp__*` sont accessibles — OK, 12 tools disponibles, prefix inchange
 - [x] Deep consistency scan (allowed-tools vs registered tools, asset paths, plugin manifests) — 0 issues
-- [ ] Tester `/litrev-screen` standalone : verifie la resolution de `references/screening_criteria.md` — deferred to post-cleanup
-- [ ] Tester `/litrev-synthesize` standalone : verifie l'acces a `assets/review_template.md` — deferred to post-cleanup
-- [ ] Tester `/litrev` avec un prompt simple : verifie la delegation aux sous-skills — deferred to post-cleanup
+- [x] Tester `/litrev-screen` standalone : verifie la resolution de `references/screening_criteria.md` — PASS (structural: relative path in SKILL.md, file present)
+- [x] Tester `/litrev-synthesize` standalone : verifie l'acces a `assets/review_template.md` — PASS (structural: relative paths in SKILL.md, files present, no absolute paths)
+- [x] Tester `/litrev` avec un prompt simple : verifie la delegation aux sous-skills — PASS (structural: agent paths resolve, zero residual absolute paths to old dirs)
 
 ### Phase 8 — Nettoyage (apres verification uniquement)
 
-- [ ] Supprimer `~/.claude/skills/litrev-search/`
-- [ ] Supprimer `~/.claude/skills/litrev-screen/`
-- [ ] Supprimer `~/.claude/skills/litrev-extract/`
-- [ ] Supprimer `~/.claude/skills/litrev-synthesize/`
-- [ ] Supprimer `~/.claude/skills/litrev-mcp/`
-- [ ] Retirer l'entree litrev-mcp de `~/.claude/.mcp.json` si le plugin gere le serveur
+- [x] Supprimer `~/.claude/skills/litrev-search/`
+- [x] Supprimer `~/.claude/skills/litrev-screen/`
+- [x] Supprimer `~/.claude/skills/litrev-extract/`
+- [x] Supprimer `~/.claude/skills/litrev-synthesize/`
+- [x] Supprimer `~/.claude/skills/litrev-mcp/`
+- [x] Retirer l'entree litrev-mcp de `~/.claude/.mcp.json` si le plugin gere le serveur — N/A, config utilisateur pointe deja vers `litrev/mcp`, pas de doublon
 
 ## Risques et mitigations
 

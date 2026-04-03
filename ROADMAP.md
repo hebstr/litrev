@@ -162,13 +162,13 @@ search_s2 ──────┤                                        ↑
 search_openalex ┘                              fetch_fulltext
 ```
 
-## Priority F: Plugin migration (structural)
+## Priority F: Plugin migration (structural) — DONE
 
-Consolidate all 6 components (orchestrator, 4 sub-skills, MCP server) into a single Claude Code plugin under `~/.claude/skills/litrev/`. Full plan in `MIGRATION_PLAN.md`.
+Consolidated all 6 components (orchestrator, 4 sub-skills, MCP server) into a single Claude Code plugin under `~/.claude/skills/litrev/`. Full plan in `MIGRATION_PLAN.md`.
 
-- [ ] Phase 1-8 of MIGRATION_PLAN.md
+- [x] Phase 1-8 of MIGRATION_PLAN.md (completed 2026-04-03)
 
-**Prerequisite**: all functional improvements (C2, D, evals, micro-audits) completed first. Migration is structural only — no functional changes.
+Backup: `~/.claude/skills/litrev-backup-20260403.tar.gz`
 
 ---
 
@@ -176,17 +176,13 @@ Consolidate all 6 components (orchestrator, 4 sub-skills, MCP server) into a sin
 
 ```
 A (MCP fixes) ✓ → B (synthesis quality) ✓ → /full-review ✓ → C1 (dedup stats) ✓
-  → D1/D2 (orchestrator disclosures)        ← NEXT
-    → C2 (grey literature)
-      → Eval fixtures Phase 6/8
-        → Micro-audits (inter-phase quality)
-          → F (plugin migration)
-            → E (new sources)
+  → D1/D2 (orchestrator disclosures) ✓
+    → C2 (grey literature) ✓
+      → Eval fixtures Phase 6/8 ✓
+        → Micro-audits (inter-phase quality) ✓
+          → F (plugin migration) ✓
+            → E (new sources)              ← NEXT
 ```
 
-A+B+C+D done (2026-04-03). Eval fixtures + micro-audits done. Next: plugin migration (F).
-C2 done: manual checklist approach (litrev-search Step 5b + synthesize limitation #3).
-Eval fixtures: eval #6 (Phase 6 verification) + eval #7 (Phase 8 audit) with compact fixtures from example_v3.
-Micro-audits: 4 inline checks (after Gates 2, 3a, 4, 5) for systematic/meta-analysis only.
-Migration (F) after all functional improvements — clean capstone, one-shot path update.
-Do not start E before migration complete — new sources should land in the final structure.
+A-F all done (2026-04-03). Next: Priority E (new source integrations).
+E1-E3 should land directly in `mcp/src/litrev_mcp/tools/`.

@@ -197,7 +197,7 @@ See [example_v3/](example_v3/) for example inputs (prompt + context). Output fil
 
 | Doc | Purpose |
 |-----|---------|
-| [ROADMAP.md](ROADMAP.md) | Improvement roadmap (priorities A-E) |
+| [ROADMAP.md](ROADMAP.md) | Improvement roadmap (priorities A-F) |
 | [ROBUST.md](ROBUST.md) | Remaining static reviews + micro-audit spec |
 | [DEFERRED.md](DEFERRED.md) | Findings deferred from code reviews |
 | [PROMPT_RECOS.md](PROMPT_RECOS.md) | User-facing tips for writing litrev prompts |

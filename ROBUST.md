@@ -2,7 +2,7 @@
 
 ## Completed: end-to-end validation run (2026-04-02)
 
-`example_v3` (scoping review, corticosteroid infiltrations) — full pipeline test post API key fix. Findings triaged into [ROADMAP.md](ROADMAP.md) priorities A-E.
+`example_v3` (scoping review, corticosteroid infiltrations) — full pipeline test post API key fix. Findings triaged into [ROADMAP.md](ROADMAP.md) priorities A-F.
 
 Validated:
 - 3 MCP search tools (search_pubmed, search_s2, search_openalex)
@@ -24,13 +24,13 @@ Layer 1 adversarial reviews completed 2026-04-01 (6 components, 26 findings acce
 
 ---
 
-## Micro-audits between phases (not implemented)
+## Micro-audits between phases (implemented 2026-04-03)
 
-Lightweight agent between two phases to verify quality, not just structure. Reserve for systematic/meta-analysis reviews — not needed for narrative/rapid.
+Lightweight inline checks after each gate for systematic/meta-analysis reviews only. Not full agents — 3-line summaries printed by the orchestrator. Skipped for scoping, narrative, and rapid reviews.
 
-| After phase | Checks |
-|-------------|--------|
-| Search (2) | Queries cover all protocol concepts? Result ratio across DBs balanced? |
-| Screening (3) | Exclusions consistent with criteria? No obvious false negatives? |
-| Extraction (4) | Claims specific? Quality ratings justified? |
-| Synthesis (5) | Every JSON claim in the text? No fabricated claims? All PICO outcomes covered by a section? |
+| After phase | Micro-audit | Checks |
+|-------------|-------------|--------|
+| Search (2) | Micro-audit 2 | Concept coverage, DB balance, failed searches |
+| Screening (3a) | Micro-audit 3a | Exclusion consistency, inclusion rate plausibility |
+| Extraction (4) | Micro-audit 4 | Claim specificity, quality calibration, theme accuracy |
+| Synthesis (5) | Micro-audit 5 | Claim traceability (5-sample), fabrication risk, PICO coverage |

@@ -1,6 +1,6 @@
 # Litrev Skill — Roadmap
 
-Last updated: 2026-04-02
+Last updated: 2026-04-03
 
 ## Priority A: MCP bug fixes (pre-review) — DONE
 
@@ -89,10 +89,10 @@ Zero duplicates across 3 databases was suspicious and unexplained. The MCP `dedu
 
 No French institutional guidelines (HAS, SOFCOT, SFR, INRS) despite "French data prioritized". Structural limitation of PubMed/S2/OA.
 
-- **Approach**: TBD — options: (a) manual search checklist in protocol, (b) scraping HAS recommandations, (c) dedicated search tool
+- **Approach**: (a) manual search checklist — Step 5b in litrev-search prompts user to check domain-specific grey literature sources, documents results in search_log.md. Synthesize auto-detects missing grey literature and discloses as limitation.
 - **Source**: F-FID-10
-- [ ] Approach decided
-- [ ] Implemented
+- [x] Approach decided: (a) manual checklist (2026-04-03)
+- [x] Implemented: litrev-search Step 5b + search_log.md template + litrev-synthesize limitation item #3 (2026-04-03)
 
 ---
 
@@ -102,19 +102,19 @@ No French institutional guidelines (HAS, SOFCOT, SFR, INRS) despite "French data
 
 Single-day review timeline not disclosed. The orchestrator should add this automatically.
 
-- **File**: `litrev/SKILL.md` (orchestrator) or `litrev-synthesize/SKILL.md`
-- **Fix**: instruct synthesize to include AI-assisted review timeline and date in limitations
+- **File**: `litrev-synthesize/SKILL.md` (Step 4h Discussion)
+- **Fix**: required limitation item #1 — state AI-assisted timeline with date
 - **Source**: F-MET-03
-- [ ] Instruction added
+- [x] Instruction added (2026-04-03)
 
 ### D2. Auto-disclose skipped phases in limitations
 
 Snowballing absence not mentioned in limitations when skipped.
 
-- **File**: `litrev/SKILL.md` (orchestrator)
-- **Fix**: when snowballing is skipped, pass this to synthesize as a required limitation item
+- **File**: `litrev-synthesize/SKILL.md` (Step 4h Discussion) + `litrev/SKILL.md` (Phase 5 documentation)
+- **Fix**: required limitation item #2 — check `screening_log.md` for absent `## Citation Snowballing` section, disclose if missing. Orchestrator documents that synthesize auto-detects from screening_log.md.
 - **Source**: F-MET-04
-- [ ] Instruction added
+- [x] Instruction added (2026-04-03)
 
 ---
 
@@ -162,11 +162,31 @@ search_s2 ──────┤                                        ↑
 search_openalex ┘                              fetch_fulltext
 ```
 
+## Priority F: Plugin migration (structural)
+
+Consolidate all 6 components (orchestrator, 4 sub-skills, MCP server) into a single Claude Code plugin under `~/.claude/skills/litrev/`. Full plan in `MIGRATION_PLAN.md`.
+
+- [ ] Phase 1-8 of MIGRATION_PLAN.md
+
+**Prerequisite**: all functional improvements (C2, D, evals, micro-audits) completed first. Migration is structural only — no functional changes.
+
+---
+
 ## Execution sequence
 
 ```
-A (MCP fixes) ✓ → B (synthesis quality) ✓ → /full-review ✓ → C1 (dedup stats) ✓ → C2 (grey lit) → D (orchestrator) → E (new sources)
+A (MCP fixes) ✓ → B (synthesis quality) ✓ → /full-review ✓ → C1 (dedup stats) ✓
+  → D1/D2 (orchestrator disclosures)        ← NEXT
+    → C2 (grey literature)
+      → Eval fixtures Phase 6/8
+        → Micro-audits (inter-phase quality)
+          → F (plugin migration)
+            → E (new sources)
 ```
 
-A+B+C1 done (2026-04-03). Next: C2 (grey literature), then D (orchestrator disclosures).
-Do not start E before B+C are stable — new sources compound existing quality issues.
+A+B+C+D done (2026-04-03). Eval fixtures + micro-audits done. Next: plugin migration (F).
+C2 done: manual checklist approach (litrev-search Step 5b + synthesize limitation #3).
+Eval fixtures: eval #6 (Phase 6 verification) + eval #7 (Phase 8 audit) with compact fixtures from example_v3.
+Micro-audits: 4 inline checks (after Gates 2, 3a, 4, 5) for systematic/meta-analysis only.
+Migration (F) after all functional improvements — clean capstone, one-shot path update.
+Do not start E before migration complete — new sources should land in the final structure.

@@ -96,6 +96,53 @@
         "Quantitative claims from extracted_claims.json are incorporated with numbers preserved",
         "The synthesis does NOT fabricate statistics not present in extracted_claims.json"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "La synthèse est terminée, le fichier review.md est prêt. Lance la vérification (Phase 6).",
+      "expected_output": "The orchestrator runs Phase 6 verification: verify_dois on the review, generate_bibliography to produce references.bib, audit_claims to cross-check claims against extracted_claims.json. Prints gate checkpoints for each step.",
+      "files": [
+        "evals/fixtures/verify_phase6/review.md",
+        "evals/fixtures/verify_phase6/extracted_claims.json",
+        "evals/fixtures/verify_phase6/claims_audit.json",
+        "evals/fixtures/verify_phase6/references.bib",
+        "evals/fixtures/verify_phase6/protocol.md"
+      ],
+      "expectations": [
+        "The orchestrator calls MCP tool verify_dois with review_path pointing to the review file",
+        "The orchestrator calls MCP tool generate_bibliography with review_path and output_path for references.bib",
+        "The orchestrator calls MCP tool audit_claims with review_path, claims_path (extracted_claims.json), and output_path (claims_audit.json)",
+        "Gate 6a checkpoint is printed: DOIs verified count, failed count, retracted count",
+        "Gate 6b checkpoint is printed: entries generated, mismatches, missing, extras",
+        "Gate 6c checkpoint is printed: total claims, verified, unverified, no-abstract, no-extraction",
+        "The orchestrator runs validate_gate(gate='6', review_dir='review/')",
+        "UNVERIFIED claims from audit_claims are investigated (not silently ignored)",
+        "If verify_dois reports failed DOIs, the orchestrator attempts correction (search CrossRef by title)"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "La vérification est terminée (Phase 6 passée). Lance les audits de qualité (Phase 8).",
+      "expected_output": "The orchestrator launches two parallel agents: audit_fidelity and audit_methodology. Each reads its agent instructions from agents/ and produces a report. After both complete, the orchestrator deduplicates findings and runs interactive walkthroughs.",
+      "files": [
+        "evals/fixtures/audit_phase8/review.md",
+        "evals/fixtures/audit_phase8/extracted_claims.json",
+        "evals/fixtures/audit_phase8/claims_audit.json",
+        "evals/fixtures/audit_phase8/references.bib",
+        "evals/fixtures/audit_phase8/protocol.md"
+      ],
+      "expectations": [
+        "The orchestrator launches TWO agents in parallel (not sequential) using the Agent tool",
+        "Agent 1 reads agents/audit_fidelity.md instructions",
+        "Agent 2 reads agents/audit_methodology.md instructions",
+        "Both agents read review files from the review/ directory",
+        "Agent 1 produces review/audit_fidelity.md",
+        "Agent 2 produces review/audit_methodology.md",
+        "After both agents complete, the orchestrator checks for overlapping findings between the two reports",
+        "The orchestrator runs interactive walkthroughs sequentially (not in parallel)",
+        "Each finding is presented with options: ACCEPTED, NOTED, DEFERRED, REJECTED",
+        "The orchestrator runs validate_gate(gate='8', review_dir='review/')"
+      ]
     }
   ]
 }

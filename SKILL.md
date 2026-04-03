@@ -134,6 +134,15 @@ Run MCP tool `validate_gate(gate="2", review_dir="review/")`. All checks must PA
 
 If any check fails, the search phase did not complete — diagnose and re-invoke `litrev-search`.
 
+#### Micro-audit 2 (systematic / meta-analysis only)
+
+Quick quality check after search — skip for scoping, narrative, and rapid reviews.
+- Do the executed queries cover all key concepts from the protocol (Population, Intervention/Exposure, Outcome)?
+- Is the result ratio across databases balanced (no single DB contributing >80% of total results)?
+- Are there failed searches that should be retried?
+
+Print a 3-line summary: concepts covered (yes/partial), DB balance (balanced/skewed), action needed (none/retry X).
+
 ## Phase 3a: Screening
 
 Invoke `litrev-screen` in orchestrated mode. Pass the inclusion/exclusion criteria from Phase 1.
@@ -151,6 +160,15 @@ If the user chooses to report absence of evidence: skip Phases 3b, 4, and 6. Inv
 If fewer than 5 articles are included, warn the user that the evidence base is thin before proceeding.
 
 If more than 100 articles are included, warn the user that extraction and synthesis will be lengthy and may require multiple sessions. Suggest narrowing inclusion criteria or switching to a scoping/rapid review type to reduce the corpus.
+
+#### Micro-audit 3a (systematic / meta-analysis only)
+
+Quick quality check after screening — skip for scoping, narrative, and rapid reviews.
+- Are exclusion reasons consistent with the protocol criteria (not ad-hoc)?
+- Sample 3 excluded articles from `screening_log.md`: does each exclusion reason match one of the declared exclusion criteria?
+- Is the inclusion rate plausible for the topic (typically 2-15% of screened articles)?
+
+Print a 3-line summary: exclusion consistency (consistent/inconsistent), inclusion rate (N/M = X%), action needed (none/review exclusions).
 
 ## Phase 3b: Snowballing (optional)
 
@@ -239,9 +257,18 @@ Additionally verify:
 - Quality ratings and theme assignments are present (quality may be null for scoping reviews). See `litrev-extract` for quality assessment details per review type
 - `stats` counts match actual array lengths (see litrev-extract Step 7)
 
+#### Micro-audit 4 (systematic / meta-analysis only)
+
+Quick quality check after extraction — skip for scoping, narrative, and rapid reviews.
+- Sample 3 articles from `extracted_claims.json`: are claims specific (numbers, effect sizes, CIs) rather than vague summaries?
+- Are quality ratings justified by study design and sample size (e.g., small uncontrolled study should not get "high" quality)?
+- Do theme assignments reflect the actual claim content?
+
+Print a 3-line summary: claim specificity (specific/vague), quality calibration (calibrated/over-rated/under-rated), action needed (none/re-extract N articles).
+
 ## Phase 5: Synthesis
 
-Invoke `litrev-synthesize` in orchestrated mode.
+Invoke `litrev-synthesize` in orchestrated mode. The sub-skill auto-detects skipped phases from `screening_log.md` (absence of `## Citation Snowballing` section) and includes required limitation disclosures (AI-assisted timeline, skipped phases).
 
 ### === GATE 5 ===
 
@@ -253,6 +280,15 @@ Additionally verify:
 - YAML header declares `bibliography: references.bib` (the file itself is created in Phase 6 — do not check for its existence here)
 - A `bibtex` fenced code block with draft reference entries (consumed by MCP `generate_bibliography` in Phase 6 to produce the authoritative `references.bib`)
 - litrev-synthesize self-checks 1–9 all reported PASS (including blocking check #8: PICO outcome coverage, and check #9: no DOIs in BibTeX)
+
+#### Micro-audit 5 (systematic / meta-analysis only)
+
+Quick quality check after synthesis — skip for scoping, narrative, and rapid reviews.
+- Sample 5 claims from `extracted_claims.json`: is each present (with preserved numbers) in the review text?
+- Are there statements in the review with specific numbers that do NOT trace to any claim in `extracted_claims.json` (potential fabrication)?
+- Do all PICO outcomes from the protocol have a corresponding section or subsection?
+
+Print a 3-line summary: claim traceability (N/5 found), fabrication risk (none/N suspicious), PICO coverage (complete/missing: X).
 
 ## Phase 6: Verification
 

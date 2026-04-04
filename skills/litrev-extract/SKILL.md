@@ -141,7 +141,7 @@ Print a summary table of all included studies:
 | 0 | Smith (2020)  | Cohort | 450 | Moderate | Smoking doubles RC tear risk | Smoking |
 ```
 
-This table serves as the Gate 4a output when running in orchestrated mode.
+This table serves as the Gate 4 output when running in orchestrated mode.
 
 ### Step 7 — Save final output
 

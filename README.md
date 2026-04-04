@@ -202,6 +202,5 @@ See [example_v3/](skills/litrev/example_v3/) for example inputs (prompt + contex
 | Doc | Purpose |
 |-----|---------|
 | [PLAN.md](PLAN.md) | Current objective, steps, and resume context |
-| [ROADMAP.md](ROADMAP.md) | Improvement history and Priority E specs |
 | [DEFERRED.md](DEFERRED.md) | Findings deferred from code reviews |
 | [PROMPT_RECOS.md](skills/litrev/PROMPT_RECOS.md) | User-facing tips for writing litrev prompts |

@@ -30,6 +30,8 @@ uv sync --group dev # include pytest for development
 | `search_s2` | Search Semantic Scholar Academic Graph API |
 | `search_openalex` | Search OpenAlex works API |
 | `fetch_abstracts` | Fetch missing abstracts from PubMed for screening |
+| `fetch_fulltext` | Full-text retrieval via PMC/Unpaywall/S2 cascade |
+| `get_section` | Extract a specific section from cached full text |
 | `extract_claims_regex` | Regex-based quantitative claim extraction from abstracts |
 | `citation_chain` | Backward/forward citation chaining via Semantic Scholar + OpenAlex |
 | `verify_dois` | Validate DOIs/PMIDs and check for retractions |

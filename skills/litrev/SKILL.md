@@ -567,7 +567,7 @@ Each sub-skill handles its own adaptations internally. The orchestrator's role i
 | Systematic | >= 3 | Title + Abstract + Full-text | Automatic (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
 | Meta-analysis | >= 3 | Title + Abstract + Full-text | Automatic (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
 | Scoping | >= 3 | Title + Abstract + Optional FT | User opt-in (both) | Optional (PRISMA-ScR) | PRISMA-ScR |
-| Narrative | >= 2 | Title + Abstract + Optional FT | User opt-in (backward) | Simplified | Simplified |
+| Narrative | >= 2 | Title + Abstract + Optional FT | User opt-in (backward only) | Simplified | Simplified |
 | Rapid | >= 2 | Combined title/abstract | User opt-in (forward, cap 5) | Simplified | Simplified |
 
 Gate adjustments by review type:
@@ -637,6 +637,7 @@ If a sub-skill fails:
 - `review/search_results.md` — ranked search results table
 - `review/search_log.md` — search documentation
 - `review/screening_log.md` — screening decisions
+- `review/abstracts_for_screening.md` — fetched abstracts for screening (Phase 3a)
 - `review/included_indices.json` — included article indices
 - `review/extracted_claims.json` — structured claims + quality + themes
 - `review/claims_audit.json` — claims cross-verification report

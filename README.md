@@ -74,11 +74,11 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 
 | Type | Min. databases | Snowballing | Quality assessment | PRISMA |
 |------|:-:|---|---|---|
-| Systematic | 3 | Automatic (both directions) | Full (RoB/GRADE) | PRISMA 2020 |
-| Meta-analysis | 3 | Automatic (both directions) | Full (RoB/GRADE) | PRISMA 2020 |
-| Scoping | 3 | User opt-in (both directions) | Optional (PRISMA-ScR) | PRISMA-ScR |
+| Systematic | 3 | Automatic (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
+| Meta-analysis | 3 | Automatic (both) | Full (RoB/GRADE) | Full PRISMA 2020 |
+| Scoping | 3 | User opt-in (both) | Optional (PRISMA-ScR) | PRISMA-ScR |
 | Narrative | 2 | User opt-in (backward only) | Simplified | Simplified |
-| Rapid | 2 | User opt-in (forward, cap 5 seeds) | Simplified | Simplified |
+| Rapid | 2 | User opt-in (forward, cap 5) | Simplified | Simplified |
 
 ## Installation
 
@@ -91,22 +91,24 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 ### Install the MCP server
 
 ```bash
-cd ~/.claude/skills/litrev/mcp
+cd ~/.claude/plugins/marketplaces/litrev/mcp
 uv sync
 ```
 
-The MCP server is configured in `~/.claude/.mcp.json`:
+The MCP server is configured in `.mcp.json` at the plugin root (`~/.claude/plugins/marketplaces/litrev/.mcp.json`):
 
 ```json
 {
-  "litrev-mcp": {
-    "type": "stdio",
-    "command": "uv",
-    "args": ["run", "--directory", "~/.claude/skills/litrev/mcp", "litrev-mcp"],
-    "env": {
-      "LITREV_EMAIL": "you@example.com",
-      "NCBI_API_KEY": "your-key-here",
-      "S2_API_KEY": "your-key-here"
+  "mcpServers": {
+    "litrev-mcp": {
+      "command": "uv",
+      "args": ["run", "--directory", "./mcp", "litrev-mcp"],
+      "env": {
+        "LITREV_EMAIL": "you@example.com",
+        "NCBI_API_KEY": "your-key-here",
+        "S2_API_KEY": "your-key-here"
+      },
+      "timeout": 120
     }
   }
 }

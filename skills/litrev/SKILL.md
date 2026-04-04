@@ -2,7 +2,7 @@
 name: litrev
 context: main
 description: Conduct systematic reviews, scoping reviews, meta-analyses, and evidence syntheses for medical, clinical, and health research. Also triggers for medical/health topics: state-of-the-art summaries, evidence maps, clinical practice guidelines, or requests to summarize/synthesize published studies — including functional descriptions like "what does the evidence say about [medical topic]", "what do we know about [medical topic]", "what does the science say about [medical topic]", "what have studies found on [medical topic]", "summarize the research on [medical topic]", "go through all the studies on [treatment/condition]", "combine the results across trials", "find gaps in the literature on [medical topic]", "pull together the evidence on [medical topic]", "what's been published on [medical topic]", "pool/synthesize the estimates across studies", "run a pooled analysis on [medical topic]", "pooled data from multiple trials", or "revue de la littérature / revue systématique / méta-analyse / synthèse des preuves / état de l'art / état des connaissances / guide de pratique clinique / passer en revue les études sur / aperçu de ce qui a été publié sur / résumer les études sur / faire le point sur les publications sur / qu'est-ce qu'on sait sur [sujet médical] / tout ce qui existe comme études sur". Also triggers for informal variants: "lit review on [medical topic]". Searches PubMed/MEDLINE, Semantic Scholar, and OpenAlex (optionally ClinicalTrials.gov and medRxiv) following PRISMA 2020, Cochrane, and GRADE methodologies. Creates markdown documents with BibTeX references and verified citations. Do NOT trigger for: non-medical domains (software engineering, education, environmental science, social sciences, etc.) even if using review methodology vocabulary, formatting existing manuscripts, writing BibTeX cleanup scripts, drawing PRISMA diagrams in code, explaining database search methodology, explaining PRISMA/Cochrane/GRADE methodology without conducting a review, or brief factual summaries on medical topics when the user explicitly declines a structured review.
-allowed-tools: Read Write Edit Bash Skill Agent WebFetch WebSearch mcp__litrev-mcp__search_pubmed mcp__litrev-mcp__search_s2 mcp__litrev-mcp__search_openalex mcp__litrev-mcp__citation_chain mcp__litrev-mcp__deduplicate_results mcp__litrev-mcp__fetch_fulltext mcp__litrev-mcp__get_section mcp__litrev-mcp__verify_dois mcp__litrev-mcp__generate_bibliography mcp__litrev-mcp__audit_claims mcp__litrev-mcp__validate_gate
+allowed-tools: Read Write Edit Bash Skill Agent WebFetch WebSearch mcp__litrev-mcp__search_pubmed mcp__litrev-mcp__search_s2 mcp__litrev-mcp__search_openalex mcp__litrev-mcp__citation_chain mcp__litrev-mcp__deduplicate_results mcp__litrev-mcp__fetch_fulltext mcp__litrev-mcp__get_section mcp__litrev-mcp__verify_dois mcp__litrev-mcp__generate_bibliography mcp__litrev-mcp__audit_claims mcp__litrev-mcp__validate_gate mcp__litrev-mcp__import_corpus
 ---
 
 # Literature Review — Orchestrator
@@ -56,7 +56,8 @@ If resuming a previous session, check `review/` for existing files and reconstru
 ```
 - [ ] Phase 1 Planning
   - [ ] GATE 1: protocol printed (question, framework, scope, criteria, databases, search terms)
-- [ ] Phase 2 Search (litrev-search)
+- [ ] Phase 2a Search (litrev-search)
+- [ ] Phase 2b Import corpus (optional) — user-supplied BibTeX/RIS/CSV/TSV/PMIDs/DOIs
   - [ ] GATE 2: review/combined_results.json + review/search_results.md + review/search_log.md exist
 - [ ] Phase 3a Screening (litrev-screen)
   - [ ] GATE 3a: review/screening_log.md + review/included_indices.json exist, PRISMA counts printed
@@ -124,9 +125,26 @@ Print a protocol summary with: research question, framework (with each component
 
 **Persist the protocol**: write the protocol summary to `review/protocol.md` so it survives session boundaries. On session resumption, read `review/protocol.md` to restore the research question, framework, review type, criteria, and search strategy.
 
-## Phase 2: Search
+## Phase 2a: Search
 
 Invoke `litrev-search` in orchestrated mode. The protocol from Phase 1 provides all required inputs.
+
+## Phase 2b: Import corpus (optional)
+
+If the user has bibliographic files to import (institutional database exports, hand-curated reference lists, or grey literature collections), merge them into the pipeline before Gate 2.
+
+Ask the user: "Do you have any bibliographic files to import (BibTeX, RIS, Scopus CSV, Web of Science TSV, or lists of PMIDs/DOIs)? If so, provide the file path."
+
+If the user provides a file:
+
+1. Call the MCP tool `import_corpus(file_path=<path>, output_path="review/imported_results.json")`. The tool auto-detects the format, parses records, and enriches sparse entries (bare PMIDs/DOIs) with metadata from PubMed, CrossRef, and OpenAlex.
+2. Read `review/imported_results.json` and `review/combined_results.json`, concatenate the two lists, and write the merged result back to `review/combined_results.json`.
+3. Call `deduplicate_results(results_path="review/combined_results.json")` to remove duplicates introduced by the merge.
+4. Log the import in `review/search_log.md`: format detected, records parsed, records after dedup, source file path.
+
+If the user has multiple files, repeat step 1 for each file before merging.
+
+If the user has no files to import, skip this phase and proceed to Gate 2.
 
 ### === GATE 2 ===
 

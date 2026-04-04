@@ -15,6 +15,7 @@ Tools:
   - generate_bibliography: 3-level DOI resolution to BibTeX
   - audit_claims: cross-verify numbers in review vs extracted claims
   - validate_gate: mechanical gate validation for review pipeline phases
+  - import_corpus: import user-supplied bibliographic files (BibTeX, RIS, CSV, TSV, PMIDs, DOIs)
 """
 
 from typing import Literal
@@ -35,6 +36,7 @@ from .tools.verify import audit_claims as _audit_claims
 from .tools.fulltext import fetch_fulltext as _fetch_fulltext
 from .tools.fulltext import get_section as _get_section
 from .tools.gates import validate_gate as _validate_gate
+from .tools.import_corpus import import_corpus as _import_corpus
 from .lib.http import env_tips
 
 
@@ -474,6 +476,39 @@ def validate_gate(
         review_dir: Path to the review directory containing output files
     """
     return _validate_gate(gate, review_dir)
+
+
+@mcp.tool()
+def import_corpus(
+    file_path: str,
+    format: str | None = None,
+    enrich: bool = True,
+    output_path: str | None = None,
+) -> dict:
+    """Import a user-supplied bibliographic file into the review pipeline.
+
+    Parses BibTeX, RIS, Scopus CSV, Web of Science TSV, PMID lists, or DOI lists
+    into normalised article records. Sparse records (bare PMIDs/DOIs) are enriched
+    with metadata from PubMed, CrossRef, and OpenAlex. Output is compatible with
+    combined_results.json and can be merged via deduplicate_results.
+
+    Args:
+        file_path: Path to the file to import
+        format: Explicit format — "bibtex", "ris", "scopus_csv", "wos_tsv", "pmid_list", "doi_list". Auto-detected from content if omitted.
+        enrich: Fetch missing metadata from PubMed/CrossRef/OpenAlex (default: true). Disable for offline use or pre-enriched files.
+        output_path: Where to write the imported results JSON (default: imported_results.json next to input file)
+    """
+    return _with_tips(
+        _import_corpus(
+            file_path,
+            format=format,
+            enrich=enrich,
+            output_path=output_path,
+        ),
+        "LITREV_EMAIL",
+        "NCBI_API_KEY",
+        "S2_API_KEY",
+    )
 
 
 def main():

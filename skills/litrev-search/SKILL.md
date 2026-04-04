@@ -2,7 +2,7 @@
 name: litrev-search
 context: fork
 description: Search medical and clinical databases for literature reviews. Queries PubMed/MEDLINE, Semantic Scholar, OpenAlex (and optionally ClinicalTrials.gov, medRxiv) via public APIs, aggregates and deduplicates results into normalized JSON, and produces a ranked markdown summary. Use whenever the user needs to search biomedical databases for a review, build a multi-database search strategy, or says things like "search the literature on [medical topic]", "find studies about [treatment]", "do a lit search on [topic]", "recherche bibliographique", "recherche biblio", "interroger PubMed/les bases", "interroger plusieurs bases", "chercher dans les bases", "cherche les articles sur [sujet médical]". Also triggers when the orchestrator skill (litrev) delegates its search phase. Do NOT trigger for: general web searches, non-medical database queries, searching code, fetching metadata for known articles (by PMID, DOI, or title — single or batch), post-processing existing search results (deduplication/ranking of an existing combined_results.json), writing methods sections for a review, bibliometric or scientometric analysis, or Google Scholar query refinement.
-allowed-tools: Read Write Edit WebFetch mcp__litrev-mcp__search_pubmed mcp__litrev-mcp__search_s2 mcp__litrev-mcp__search_openalex mcp__litrev-mcp__deduplicate_results mcp__litrev-mcp__process_results
+allowed-tools: Read Write Edit WebFetch mcp__litrev-mcp__search_pubmed mcp__litrev-mcp__search_s2 mcp__litrev-mcp__search_openalex mcp__litrev-mcp__deduplicate_results mcp__litrev-mcp__process_results mcp__litrev-mcp__import_corpus
 ---
 
 # Literature Search for Medical Reviews
@@ -70,7 +70,9 @@ For each concept, build database-specific queries:
 
 In standalone mode, present the planned queries to the user and wait for approval before executing. If the user requests changes, revise the queries accordingly and re-present for approval. Repeat until approved. In orchestrated mode, log the queries in `search_log.md` and proceed without waiting.
 
-**Institutional databases** (EMBASE, Scopus, Web of Science): these require institutional access and have no public API — they cannot be queried programmatically. Ask the user: "Do you have institutional access to EMBASE, Scopus, or Web of Science? If so, I'll prepare ready-to-paste queries for their web portals. You run them, export the results (RIS or CSV), and I'll integrate them into the pipeline." If the user provides exported files, parse them during Step 3 (normalize and aggregate) using the same schema. Document the suggestion and outcome in `search_log.md` regardless of whether the user follows through.
+**Institutional databases** (EMBASE, Scopus, Web of Science): these require institutional access and have no public API — they cannot be queried programmatically. Ask the user: "Do you have institutional access to EMBASE, Scopus, or Web of Science? If so, I'll prepare ready-to-paste queries for their web portals. You run them, export the results (RIS or CSV), and I'll import them with `import_corpus`."
+
+If the user provides exported files, call `import_corpus(file_path=<path>, output_path="review/imported_<db>.json")`. The tool auto-detects Scopus CSV, Web of Science TSV, RIS, and BibTeX formats, and enriches sparse records with metadata from PubMed/CrossRef/OpenAlex. Then merge the imported records into `review/combined_results.json` during Step 3 (normalize and aggregate). Document the suggestion and outcome in `search_log.md` regardless of whether the user follows through.
 
 ### Step 2 — Execute searches
 

@@ -19,7 +19,7 @@ skills/
 ├── litrev-screen/             ← Phase 3: screening decisions (LLM) + MCP abstract fetch
 ├── litrev-extract/            ← Phase 4: claim extraction (LLM) + MCP regex extraction
 └── litrev-synthesize/         ← Phase 5: constrained thematic writing (LLM only)
-mcp/                           ← MCP server: 14 deterministic tools
+mcp/                           ← MCP server: 15 deterministic tools
 ```
 
 ### MCP tools (`mcp/`)
@@ -40,6 +40,7 @@ mcp/                           ← MCP server: 14 deterministic tools
 | `generate_bibliography` | BibTeX generation (3-level DOI resolution) |
 | `audit_claims` | Cross-verify numerical claims vs source abstracts |
 | `validate_gate` | Mechanical gate validation for review pipeline phases |
+| `import_corpus` | Import user-supplied bibliographic files (BibTeX, RIS, CSV, TSV, PMIDs, DOIs) |
 
 ### Design principles
 
@@ -58,7 +59,8 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 | Phase | Delegate | What it does |
 |-------|----------|--------------|
 | 1 | `litrev` | Define research question (PICO/PEO/SPIDER), scope, inclusion/exclusion criteria |
-| 2 | Skill `litrev-search` + MCP `process_results`, `deduplicate_results` | Query databases, deduplicate and rank results |
+| 2a | Skill `litrev-search` + MCP `process_results`, `deduplicate_results` | Query databases, deduplicate and rank results |
+| 2b | MCP `import_corpus` (optional) | Import user-supplied bibliographic files, enrich and merge |
 | 3a | Skill `litrev-screen` + MCP `fetch_abstracts`, `fetch_fulltext`, `get_section` | Multi-pass title/abstract screening with PRISMA counts and optional full-text retrieval |
 | 3b | MCP `citation_chain` + inline screening | Backward and forward citation chaining |
 | 4 | Skill `litrev-extract` + MCP `extract_claims_regex` | Claim extraction, quality assessment, theme assignment |

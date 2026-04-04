@@ -38,6 +38,7 @@ uv sync --group dev # include pytest for development
 | `generate_bibliography` | 3-level DOI resolution to BibTeX |
 | `audit_claims` | Cross-verify numbers in review vs extracted claims |
 | `validate_gate` | Mechanical gate validation for review pipeline phases |
+| `import_corpus` | Import user-supplied bibliographic files (BibTeX, RIS, CSV, TSV, PMIDs, DOIs) |
 
 ## MCP client configuration
 

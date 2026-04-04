@@ -164,9 +164,9 @@ search_openalex ┘                              fetch_fulltext
 
 ## Priority F: Plugin migration (structural) — DONE
 
-Consolidated all 6 components (orchestrator, 4 sub-skills, MCP server) into a single Claude Code plugin under `~/.claude/skills/litrev/`. Full plan in `MIGRATION_PLAN.md`.
+Consolidated all 6 components (orchestrator, 4 sub-skills, MCP server) into a single Claude Code plugin under `~/.claude/skills/litrev/`.
 
-- [x] Phase 1-8 of MIGRATION_PLAN.md (completed 2026-04-03)
+- [x] Phase 1-8 completed (2026-04-03)
 
 Backup: `~/.claude/skills/litrev-backup-20260403.tar.gz`
 

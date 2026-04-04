@@ -10,15 +10,16 @@ Hybrid architecture: **sub-skills** handle LLM reasoning (search strategy, scree
 The orchestrator (`litrev`) handles planning, sequencing, and quality gates.
 
 ```
-skills/litrev/              ← orchestrator (sequencing + gates)
-├── agents/
-│   ├── audit_fidelity.md   ← Phase 8: fidelity audit (claims vs sources)
-│   └── audit_methodology.md ← Phase 8: methodology audit (synthesis critique)
-skills/litrev-search/       ← Phase 2: search strategy (LLM) + MCP execution
-skills/litrev-screen/       ← Phase 3: screening decisions (LLM) + MCP abstract fetch
-skills/litrev-extract/      ← Phase 4: claim extraction (LLM) + MCP regex extraction
-skills/litrev-synthesize/   ← Phase 5: constrained thematic writing (LLM only)
-mcp/                        ← MCP server: 12 deterministic tools
+skills/
+├── litrev/                    ← orchestrator (sequencing + gates)
+│   └── agents/
+│       ├── audit_fidelity.md  ← Phase 8: fidelity audit (claims vs sources)
+│       └── audit_methodology.md ← Phase 8: methodology audit (synthesis critique)
+├── litrev-search/             ← Phase 2: search strategy (LLM) + MCP execution
+├── litrev-screen/             ← Phase 3: screening decisions (LLM) + MCP abstract fetch
+├── litrev-extract/            ← Phase 4: claim extraction (LLM) + MCP regex extraction
+└── litrev-synthesize/         ← Phase 5: constrained thematic writing (LLM only)
+mcp/                           ← MCP server: 12 deterministic tools
 ```
 
 ### MCP tools (`mcp/`)
@@ -170,6 +171,7 @@ All files are written to `review/` in the current working directory:
 | `search_results.md` | Ranked results table |
 | `search_log.md` | Search documentation (queries, databases, counts) |
 | `screening_log.md` | Screening decisions with PRISMA flow |
+| `abstracts_for_screening.md` | Fetched abstracts for screening (Phase 3a) |
 | `included_indices.json` | Indices of included articles |
 | `extracted_claims.json` | Structured claims with quality ratings and themes |
 | `<topic>_review.md` | The review document (Pandoc markdown with `[@citations]`) |
@@ -197,7 +199,7 @@ See [example_v3/](skills/litrev/example_v3/) for example inputs (prompt + contex
 
 | Doc | Purpose |
 |-----|---------|
-| [ROADMAP.md](ROADMAP.md) | Improvement roadmap (priorities A-F) |
-| [ROBUST.md](ROBUST.md) | Remaining static reviews + micro-audit spec |
+| [PLAN.md](PLAN.md) | Current objective, steps, and resume context |
+| [ROADMAP.md](ROADMAP.md) | Improvement history and Priority E specs |
 | [DEFERRED.md](DEFERRED.md) | Findings deferred from code reviews |
 | [PROMPT_RECOS.md](skills/litrev/PROMPT_RECOS.md) | User-facing tips for writing litrev prompts |

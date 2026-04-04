@@ -4,7 +4,7 @@ Findings reportés lors des code reviews. À revisiter périodiquement.
 
 | Date | Finding | Fichier | Raison du report |
 |------|---------|---------|-----------------|
-| 2026-03-27 | FN-3/GAP-3 : Import path pour corpus pré-existant (PMIDs, BibTeX, PDFs → combined_results.json) | skills/litrev/SKILL.md, skills/litrev-search/SKILL.md | Feature structurelle : nécessite un nouveau chemin dans Phase 1/2 + potentiellement un MCP tool d'import |
+| ~~2026-03-27~~ | ~~FN-3/GAP-3 : Import path pour corpus pré-existant (PMIDs, BibTeX, PDFs → combined_results.json)~~ | ~~skills/litrev/SKILL.md, skills/litrev-search/SKILL.md~~ | IN PROGRESS — Feature F dans PLAN.md |
 | 2026-04-01 | Support umbrella review (review of reviews) — workflow différent : recherche de SR/MA, critères adaptés, qualité via AMSTAR 2 | skills/litrev/SKILL.md Phase 1 | Actuellement flaggé non supporté dans l'orchestrateur |
 | ~~2026-04-02~~ | ~~Tests unitaires manquants pour 5/10 modules MCP tools (abstracts, openalex_search, pubmed_search, s2_search, snowball)~~ | ~~mcp/tests/~~ | DONE (2026-04-04): 91 tests ajoutés, 288 total |
 | 2026-03-31 | F24 — Screen evals: ajouter test edge-case pool vide | skills/litrev-screen/evals/evals.json | Amélioration eval, pas un bug |

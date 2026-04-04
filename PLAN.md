@@ -15,7 +15,7 @@ Run the validation pipeline end-to-end in example-4, then design orchestrator an
 | P3 | Plugin conversion: register `"litrev@litrev": true` in `settings.json` | done |
 | P4 | Plugin conversion: verify skill discovery + MCP connection (requires restart) | done |
 | P5 | Plugin conversion: migrate memory to new project context path, remove symlink | deferred |
-| 3 | Run full pipeline end-to-end (Phases 1-9) in example-4 | todo |
+| 3 | Run full pipeline end-to-end (Phases 1-9) in external research project (not example-4) | todo |
 | 4 | Triage issues found during run | todo |
 | 5 | Fix issues (if any) | todo |
 | 6 | F26: design + implement orchestrator evals | todo |
@@ -54,8 +54,9 @@ Steps 1-2 done (2026-04-04): example-4 prepared (topic: postoperative delirium p
 Plugin conversion P1-P3 done (2026-04-04): repo at `~/.claude/plugins/marketplaces/litrev/`, `.mcp.json` with env vars at root, registered in settings.json, global `.mcp.json` cleared.
 Symlink at old path NOT created — Bash was unavailable (sandbox CWD mismatch). Not critical: old path only needed for memory project context.
 P4 verified (2026-04-04): 5 skills discovered, MCP tools connected. Plugin conversion complete.
-Next: step 3 — run full pipeline end-to-end in example-4.
-Partial search results exist in workspace/example-4/review/ (pubmed_q1.json, s2_q1.json) — will be discarded and re-run.
+Next: step 3 — run full pipeline end-to-end in external research project (real conditions, single MCP instance).
+Testing moved out of workspace/example-4/ to avoid double MCP instance issue when working inside the plugin repo.
+PROMPT.md, CONTEXT.md, and import_corpus.bib to be copied to the research project.
 
 ## Reference files
 

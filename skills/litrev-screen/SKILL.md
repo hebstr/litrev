@@ -27,7 +27,7 @@ Screen search results against inclusion/exclusion criteria following a multi-pas
 
 **Standalone**: the user asks to screen search results directly. Confirm that input files exist, that criteria are available, and that the review type is specified before starting. If the user does not provide a review type, ask — do not assume a default.
 
-**Orchestrated**: called by the `litrev` orchestrator skill after Phase 2 (search). The orchestrator has already established criteria in Phase 1. Read them from the conversation context and proceed without re-asking.
+**Orchestrated**: called by the `litrev` orchestrator skill after Phase 2a (search). The orchestrator has already established criteria in Phase 1. Read them from the conversation context and proceed without re-asking.
 
 ## Input Requirements
 

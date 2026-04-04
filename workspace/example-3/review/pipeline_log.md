@@ -4,7 +4,7 @@
 - **Topic**: Subacromial corticosteroid injections in the management of shoulder pain in adults
 - **Review type**: Scoping (PRISMA-ScR)
 - **Framework**: PICO
-- **Working directory**: /home/julien/.claude/skills/litrev/example_v3
+- **Working directory**: workspace/example-3
 
 ## Funnel Metrics
 

@@ -6,7 +6,7 @@
 - **Framework**: PEO
 - **Language**: French synthesis
 - **Context**: Introduction to PRISE protocol (CHU de Lille, SNDS + EDS INCLUDE)
-- **Working directory**: `example_v2/`
+- **Working directory**: `workspace/example-2/`
 
 ## Funnel Metrics
 

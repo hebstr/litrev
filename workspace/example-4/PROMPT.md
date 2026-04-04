@@ -15,6 +15,6 @@ Cadrage :
 - Langue : anglais et français
 - Exclusions : pédiatrie, chirurgie cardiaque, delirium en réanimation (hors postopératoire), delirium tremens
 
-Contexte projet : voir CONTEXT_SUMMARY.md.
+Contexte projet : voir CONTEXT.md.
 
 Rédige la synthèse en anglais.

@@ -8,3 +8,4 @@ build/
 workspace/iteration*/
 .ruff_cache/
 mcp/.venv/
+/.mcp.json

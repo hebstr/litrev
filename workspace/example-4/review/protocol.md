@@ -1,44 +1,29 @@
-# Protocol — Prediction Models for Postoperative Delirium in Older Surgical Patients
+# Protocol — Prediction Models for Postoperative Delirium in Elderly Surgical Patients
 
 ## Research Question
 
-What prediction models and risk scores for postoperative delirium exist for older surgical patients (≥65 years, non-cardiac surgery), how do they perform (discrimination, calibration), which risk factors do they incorporate, and can routine hospital data (EHR) improve prediction compared to dedicated clinical assessment?
+What prediction models, risk scores, and predictive tools are available for postoperative delirium in elderly patients undergoing elective non-cardiac surgery, what is their discriminative and calibrative performance, which risk factors are consistently identified, and do models derived from routine hospital data (EHR) offer advantages over dedicated clinical assessments?
 
 ## Framework: PICO
 
-| Component | Definition |
-|-----------|------------|
-| **Population** | Adults ≥65 years, scheduled non-cardiac surgery |
-| **Intervention** | Prediction models/scores for postoperative delirium (clinical scores, ML models, EHR-derived models) |
-| **Comparator** | Clinical judgment alone, no screening, or head-to-head model comparison |
-| **Outcomes** | (1) Discrimination (AUC/c-statistic), calibration; (2) Identified risk factors (age, comorbidities, polypharmacy, frailty, biomarkers); (3) Impact on early detection and length of stay |
+- **Population**: Adults aged >= 65 years hospitalized for elective non-cardiac surgery
+- **Intervention**: Prediction models or scores for postoperative delirium (clinical risk scores, machine learning models, models derived from EHR/routine hospital data)
+- **Comparator**: Clinical judgment alone, no screening, or head-to-head comparison between models
+- **Outcomes**: (1) Discrimination (AUC / c-statistic), calibration; (2) Risk factors identified (age, comorbidities, polypharmacy, frailty, biomarkers); (3) Impact on early detection and length of stay
 
 ## Review Type
 
-Scoping review (PRISMA-ScR)
+Scoping review (PRISMA-ScR guideline)
 
-## Scope
+State of the art before developing a local prediction model on CHU de Lille EDS INCLUDE data (13 years of routine hospital data).
 
-- **Time period**: 2015–2026
-- **Languages**: English, French
-- **Geographic scope**: International (no restriction)
+## Period
 
-## Inclusion Criteria
+2015-2026
 
-- Adults ≥65 years undergoing elective non-cardiac surgery
-- Studies developing, validating, or comparing a prediction model or risk score for postoperative delirium
-- Reports discrimination metrics (AUC, c-statistic) or identifies risk factors
-- Published 2015–2026
-- English or French language
+## Language
 
-## Exclusion Criteria
-
-- Pediatric populations
-- Cardiac surgery
-- ICU delirium (non-postoperative context)
-- Delirium tremens (alcohol withdrawal)
-- Case reports, editorials, conference abstracts without full data
-- Animal studies
+English and French
 
 ## Databases
 
@@ -46,20 +31,28 @@ Scoping review (PRISMA-ScR)
 - Semantic Scholar
 - OpenAlex
 
-## Search Strategy
+## Search Concepts and Synonyms
 
-### Key Concepts and Synonyms
+1. **Population — Elderly surgical patients**: elderly, older adults, aged, geriatric, senior, >= 65, over 65, elective surgery, scheduled surgery, non-cardiac surgery, surgical patients, preoperative, perioperative
+2. **Condition — Postoperative delirium**: postoperative delirium, POD, delirium after surgery, acute confusion postoperative, postoperative cognitive dysfunction, emergence delirium (elderly)
+3. **Intervention — Prediction models and risk scores**: prediction model, predictive model, risk prediction, risk score, risk assessment, screening tool, prognostic model, clinical prediction rule, nomogram, machine learning, deep learning, artificial intelligence, random forest, logistic regression, gradient boosting, XGBoost, neural network, EHR-based model, electronic health record, routine data, administrative data, DELPOD, Marcantonio score, PRE-DELIRIC
+4. **Outcomes — Performance and risk factors**: discrimination, AUC, c-statistic, ROC, calibration, sensitivity, specificity, positive predictive value, negative predictive value, external validation, risk factor, predictor, frailty, comorbidity, polypharmacy, cognitive impairment, biomarker, length of stay, early detection
 
-| Concept | Terms |
-|---------|-------|
-| **Delirium** | delirium, postoperative delirium, POD, postoperative cognitive dysfunction, acute confusion |
-| **Prediction** | prediction model, predictive model, risk score, risk prediction, prognostic model, machine learning, clinical decision support, screening tool, nomogram, risk stratification |
-| **Elderly surgery** | elderly, older adults, aged, geriatric, surgical patients, elective surgery, non-cardiac surgery |
-| **EHR/routine data** | electronic health record, EHR, routine data, administrative data, clinical data warehouse, health information system |
+## Inclusion Criteria
 
-### Boolean Strategy
+- Adults >= 65 years undergoing elective non-cardiac surgery
+- Study designs: systematic reviews, meta-analyses, cohort studies (prospective and retrospective), case-control studies, cross-sectional studies, model development/validation studies, clinical guidelines
+- Published 2015-2026
+- Language: English or French
+- Reports at least one of: model development, model validation, risk factor identification for postoperative delirium, or performance metrics of a prediction tool
 
-(delirium OR "postoperative delirium" OR POD OR "acute confusion") AND ("prediction model" OR "risk score" OR "machine learning" OR "prognostic model" OR nomogram OR "risk stratification" OR "predictive model") AND (elderly OR "older adults" OR aged OR geriatric OR "surgical patients" OR "elective surgery")
+## Exclusion Criteria
 
-EHR-specific queries run separately to capture data-source-focused studies:
-(delirium OR "postoperative delirium") AND ("electronic health record" OR EHR OR "routine data" OR "administrative data" OR "clinical data warehouse") AND (prediction OR predictive OR "risk score")
+- Pediatric populations (< 18 years)
+- Cardiac surgery (including cardiac bypass, valve surgery)
+- Delirium in intensive care unit (ICU delirium not postoperative in origin)
+- Delirium tremens (alcohol withdrawal delirium)
+- Emergency surgery only (unless mixed cohort with elective subgroup analysis)
+- Case reports, editorials, conference abstracts only, letters, commentaries
+- Animal studies
+- Studies exclusively on postoperative cognitive dysfunction (POCD) without delirium assessment

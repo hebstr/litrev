@@ -2,7 +2,7 @@
 name: litrev-extract
 context: fork
 description: Extract claims and assess study quality from included articles in a literature review. Given screened articles from a completed screening phase, extracts quantitative and qualitative claims from abstracts (with optional full-text enrichment), assigns a quality rating to each study, and organizes findings by themes. Use this skill whenever the user wants to extract data from included studies, pull out key findings, assess study quality, do a quality assessment, do a critical appraisal, do a methodological appraisal, assess risk of bias, rate the evidence, grade the studies, organize findings by theme, make a summary table of effect sizes, or says things like "extract the data from included articles", "what do the studies say", "assess the quality of these studies", "rate the evidence", "which studies are weak", "critical appraisal tool", "extraire les donnees", "evaluer la qualite des etudes", "extraction des donnees", "grille de qualite", "evaluer le niveau de preuve", "classer par themes", "risque de biais", "tableau recapitulatif", "evaluation critique", "sorte les resultats des etudes". Also triggers when screening is complete and the user asks what to do next with included studies. Do NOT trigger for: searching databases (use litrev-search), screening articles (use litrev-screen), citation chaining (handled by orchestrator via MCP `citation_chain`), writing the synthesis (use litrev-synthesize), verifying citations (handled by orchestrator via MCP tools), generic data extraction from spreadsheets or CSVs, or assessing quality of non-research artifacts (code, writing, policy documents).
-allowed-tools: Read Write Edit WebFetch mcp__litrev-mcp__extract_claims_regex
+allowed-tools: Read Write Edit WebFetch mcp__litrev-mcp__extract_claims_regex mcp__litrev-mcp__fetch_fulltext mcp__litrev-mcp__get_section
 ---
 
 # Data Extraction and Quality Assessment
@@ -233,10 +233,10 @@ The orchestrator expects this skill to call the MCP tool `extract_claims_regex` 
 
 ## Full-Text Enrichment (Optional)
 
-If the user has access to full-text articles (via institutional VPN or open access), claims can be enriched beyond what abstracts provide. This is not the default workflow — offer it when:
+Claims can be enriched beyond what abstracts provide using `fetch_fulltext` + `get_section` (PMC/Unpaywall/S2 cascade). This is not the default workflow — offer it when:
 - Many articles have no abstract
 - The user asks for more detailed extraction
 - Key effect sizes are missing from abstracts
 
-To enrich, ask the user to provide full-text files (PDF or plain text). Then re-read the enriched content and update `semantic_claims` accordingly. When adding claims from full-text, mark them with `"source": "full-text"` (vs `"source": "abstract"` for abstract-derived claims).
+To enrich: call `fetch_fulltext(doi)` to cache the full text, then `get_section(doi, section="results")` or other sections to retrieve targeted content. Re-read the enriched content and update `semantic_claims` accordingly. When adding claims from full-text, mark them with `"source": "full-text"` (vs `"source": "abstract"` for abstract-derived claims).
 

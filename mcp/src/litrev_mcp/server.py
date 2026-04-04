@@ -7,6 +7,8 @@ Tools:
   - process_results: deduplicate, rank, filter, format search results
   - deduplicate_results: deduplicate combined_results.json in place
   - fetch_abstracts: fetch missing abstracts from PubMed for screening
+  - fetch_fulltext: retrieve full text via PMC/Unpaywall/S2 cascade
+  - get_section: extract a specific section from cached full text
   - extract_claims_regex: regex-based quantitative claim extraction
   - citation_chain: backward/forward citation chaining via S2 + OpenAlex
   - verify_dois: validate DOIs/PMIDs, check retractions
@@ -30,6 +32,8 @@ from .tools.openalex_search import search_openalex as _search_openalex
 from .tools.verify import verify_dois as _verify_dois
 from .tools.verify import generate_bibliography as _generate_bibliography
 from .tools.verify import audit_claims as _audit_claims
+from .tools.fulltext import fetch_fulltext as _fetch_fulltext
+from .tools.fulltext import get_section as _get_section
 from .tools.gates import validate_gate as _validate_gate
 from .lib.http import env_tips
 
@@ -406,6 +410,53 @@ def audit_claims(
         bib_path=bib_path,
         output_path=output_path,
     )
+
+
+@mcp.tool()
+def fetch_fulltext(
+    doi: str,
+) -> dict:
+    """Fetch full text for a scientific article via PMC, Unpaywall, or S2.
+
+    Tries PMC JATS XML first (structured sections), then falls back to
+    Unpaywall PDF, then Semantic Scholar open-access PDF. Caches the result
+    in memory for subsequent get_section calls.
+
+    Returns metadata only (source, word count, available sections) — NOT the
+    full text itself. Use get_section to retrieve specific sections.
+
+    Args:
+        doi: The DOI of the article (e.g. "10.1234/example")
+    """
+    return _with_tips(
+        _fetch_fulltext(doi),
+        "LITREV_EMAIL",
+        "NCBI_API_KEY",
+        "S2_API_KEY",
+    )
+
+
+@mcp.tool()
+def get_section(
+    doi: str,
+    section: str = "results",
+    max_chars: int = 15000,
+) -> dict:
+    """Retrieve a specific section from a previously fetched full-text article.
+
+    Requires fetch_fulltext to have been called first for this DOI.
+    For PMC-sourced articles, named sections (introduction, methods, results,
+    discussion, conclusion) are available. For PDF-sourced articles, only
+    "full" is available (no section splitting).
+
+    Use section="full" to get the entire text (subject to max_chars truncation).
+
+    Args:
+        doi: The DOI of the article
+        section: Section name — "abstract", "introduction", "methods", "results", "discussion", "conclusion", or "full"
+        max_chars: Maximum characters to return (default: 15000, ~5k tokens). Truncates with warning if exceeded.
+    """
+    return _get_section(doi, section=section, max_chars=max_chars)
 
 
 @mcp.tool()

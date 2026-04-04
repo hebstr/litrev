@@ -11,5 +11,7 @@ Findings reportés lors des code reviews. À revisiter périodiquement.
 | 2026-03-31 | F25 — Extract evals: ajouter test edge-case 0 articles inclus | skills/litrev-extract/evals/evals.json | Amélioration eval, pas un bug |
 | 2026-03-31 | F26 — Orchestrator: créer une suite d'evals | skills/litrev/evals/ | Evals absentes, nécessite conception dédiée |
 | 2026-03-31 | F27 — Synthesize: créer une suite d'evals | skills/litrev-synthesize/evals/ | Evals absentes, nécessite conception dédiée |
+| 2026-04-04 | E2 — `search_scopus` : Elsevier API, dedup-compatible output | mcp/src/litrev_mcp/tools/ | Nécessite clé API institutionnelle (insttoken) ; couverture déjà assurée par OpenAlex |
+| 2026-04-04 | E3 — `search_wos` : Clarivate Starter API | mcp/src/litrev_mcp/tools/ | Nécessite abonnement institutionnel + licence API ; couverture déjà assurée par PubMed + OpenAlex + S2 |
 | 2026-04-01 | No eval coverage for rapid review + no-abstract path | skills/litrev-screen/evals/ | Requires creating new test data with missing abstracts for a rapid review scenario |
 | 2026-04-01 | file_exists assertion checks review/ but eval sandbox writes to outputs/ | skills/litrev-extract/evals/evals.json | Fix depends on eval harness sandbox directory mapping behavior |

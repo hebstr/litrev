@@ -19,7 +19,7 @@ skills/
 ├── litrev-screen/             ← Phase 3: screening decisions (LLM) + MCP abstract fetch
 ├── litrev-extract/            ← Phase 4: claim extraction (LLM) + MCP regex extraction
 └── litrev-synthesize/         ← Phase 5: constrained thematic writing (LLM only)
-mcp/                           ← MCP server: 12 deterministic tools
+mcp/                           ← MCP server: 14 deterministic tools
 ```
 
 ### MCP tools (`mcp/`)
@@ -32,6 +32,8 @@ mcp/                           ← MCP server: 12 deterministic tools
 | `process_results` | Deduplicate, rank, filter, format search results |
 | `deduplicate_results` | Deduplicate combined_results.json by PMID/DOI/title |
 | `fetch_abstracts` | Retrieve missing abstracts from PubMed |
+| `fetch_fulltext` | Full-text retrieval via PMC/Unpaywall/S2 cascade |
+| `get_section` | Extract a specific section from cached full text |
 | `extract_claims_regex` | Quantitative claim extraction by regex |
 | `citation_chain` | Backward/forward citation chaining via Semantic Scholar + OpenAlex |
 | `verify_dois` | DOI/PMID validation + retraction check (CrossRef + PubMed) |
@@ -57,7 +59,7 @@ Planning → Search → Screen → Snowball (optional) → Extract → Synthesiz
 |-------|----------|--------------|
 | 1 | `litrev` | Define research question (PICO/PEO/SPIDER), scope, inclusion/exclusion criteria |
 | 2 | Skill `litrev-search` + MCP `process_results`, `deduplicate_results` | Query databases, deduplicate and rank results |
-| 3a | Skill `litrev-screen` + MCP `fetch_abstracts` | Multi-pass title/abstract screening with PRISMA counts (full-text screening planned, see [ROADMAP.md](ROADMAP.md) E1) |
+| 3a | Skill `litrev-screen` + MCP `fetch_abstracts`, `fetch_fulltext`, `get_section` | Multi-pass title/abstract screening with PRISMA counts and optional full-text retrieval |
 | 3b | MCP `citation_chain` + inline screening | Backward and forward citation chaining |
 | 4 | Skill `litrev-extract` + MCP `extract_claims_regex` | Claim extraction, quality assessment, theme assignment |
 | 5 | Skill `litrev-synthesize` | Constrained thematic writing — every claim traced to source |

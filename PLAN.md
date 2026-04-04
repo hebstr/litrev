@@ -2,23 +2,21 @@
 
 ## Current objective
 
-Priority E: New source integrations (fetch_fulltext, search_scopus, search_wos)
+Priority E complete. Awaiting next objective.
 
 ## Steps
 
 | # | Step | Status |
 |---|------|--------|
-| 1 | E1: `fetch_fulltext` — DOI to full text via Unpaywall/PMC/S2/CORE/Sci-Hub cascade | todo |
-| 2 | E2: `search_scopus` — Elsevier API, dedup-compatible output | todo |
-| 3 | E3: `search_wos` — Clarivate Starter API (no abstracts) | todo |
-| 4 | E4: EMBASE — deferred (no public API) | deferred |
-
-New tools land in `mcp/src/litrev_mcp/tools/`.
+| 1 | E1: `fetch_fulltext` + `get_section` — PMC/Unpaywall/S2 cascade | done |
+| 2 | E2: `search_scopus` | deferred |
+| 3 | E3: `search_wos` | deferred |
+| 4 | E4: EMBASE | deferred |
 
 ## Resume context
 
-Migration complete (2026-04-03). Priorities A-F all done. 180 MCP tests pass, 12 tools, plugin structure verified.
-No blockers. No decisions pending.
+E1 done (2026-04-04). E2/E3/E4 deferred (2026-04-04): require institutional API keys, marginal value over existing PubMed + OpenAlex + S2 coverage for medical reviews. 197 tests pass, 14 tools.
+No blockers. No active steps.
 
 ## Reference files
 
